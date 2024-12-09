@@ -17,18 +17,11 @@ impl<T: Debug> Deref for Timed<T> {
 }
 
 impl<T: Debug> Timed<T> {
-    pub fn new_with_tag(value: T, duration: Duration, tag: &str) -> Self {
+    pub fn new(value: T, duration: Duration, tag: &str) -> Self {
         Timed {
             value,
             duration,
             tag: String::from(tag),
-        }
-    }
-    pub fn new(value: T, duration: Duration) -> Self {
-        Timed {
-            value,
-            duration,
-            tag: String::from(""),
         }
     }
     pub fn print_duration(&self) {
@@ -42,16 +35,17 @@ impl<T: Debug> Timed<T> {
     }
 }
 
-fn time<T: Debug, F>(f: F, tag: &str) -> Timed<T>
+pub fn time<T: Debug, F>(f: F, tag: &str) -> Timed<T>
 where
     F: FnOnce() -> T,
 {
     let now = Instant::now();
     let value = f();
     let duration = now.elapsed();
-    Timed::new_with_tag(value, duration, tag)
+    Timed::new(value, duration, tag)
 }
 
+#[allow(unused_imports)]
 mod tests {
     use super::*;
 

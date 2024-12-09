@@ -9,26 +9,41 @@ const INPUT: &str = include_str!("input.txt");
 
 fn main() {
     let now = Instant::now();
+    let t_parse_input = timer::time(|| calcdistance::parse_input(INPUT), "parse_input");
 
-    let ((a, b), parse_input_duration) = calcdistance::parse_input(INPUT);
-    let (distance, calc_distance_duration) = calcdistance::calc_distance(a.clone(), b.clone());
+    let (a, b) = &*t_parse_input;
 
-    let (repeats1, count_repeats1_duration) = calcdistance::count_repeats1(a.clone(), b.clone());
+    let distance = {
+        let a = a.clone();
+        let b = b.clone();
+        timer::time(|| calcdistance::calc_distance(a, b), "calc_distance")
+    };
 
-    let (repeats2, count_repeats2_duration) = calcdistance::count_repeats2(a.clone(), b.clone());
+    let repeats1 = {
+        let a = a.clone();
+        let b = b.clone();
+        timer::time(|| calcdistance::count_repeats1(a, b), "count_repeats1")
+    };
 
-    let (repeats3, count_repeats3_duration) = calcdistance::count_repeats3(a.clone(), b.clone());
+    let repeats2 = {
+        let a = a.clone();
+        let b = b.clone();
+        timer::time(|| calcdistance::count_repeats2(a, b), "count_repeats2")
+    };
+
+    let repeats3 = {
+        let a = a.clone();
+        let b = b.clone();
+        timer::time(|| calcdistance::count_repeats3(a, b), "count_repeats3")
+    };
 
     let main_duration = now.elapsed();
 
-    println!("Distance: {}", distance);
-    println!("Repeats1: {}", repeats1);
-    println!("Repeats2: {}", repeats2);
-    println!("Repeats3: {}", repeats3);
-    println!("Parse input duration: {:?}", parse_input_duration);
-    println!("Calc distance duration: {:?}", calc_distance_duration);
-    println!("Count repeats1 duration: {:?}", count_repeats1_duration);
-    println!("Count repeats2 duration: {:?}", count_repeats2_duration);
-    println!("Count repeats3 duration: {:?}", count_repeats3_duration);
+    t_parse_input.print_duration();
+    distance.print_all();
+    repeats1.print_all();
+    repeats2.print_all();
+    repeats3.print_all();
+
     println!("Main duration: {:?}", main_duration);
 }

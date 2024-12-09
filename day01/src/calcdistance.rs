@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
 
 #[allow(dead_code)]
 const EXAMPLE: &str = "3   4
@@ -10,8 +9,7 @@ const EXAMPLE: &str = "3   4
 3   9
 3   3";
 
-pub fn parse_input(input: &str) -> ((Vec<i32>, Vec<i32>), Duration) {
-    let now = Instant::now();
+pub fn parse_input(input: &str) -> (Vec<i32>, Vec<i32>) {
     let mut x = Vec::new();
     let mut y = Vec::new();
     for line in input.lines() {
@@ -21,16 +19,15 @@ pub fn parse_input(input: &str) -> ((Vec<i32>, Vec<i32>), Duration) {
             y.push(yy);
         }
     }
-    ((x, y), now.elapsed())
+    (x, y)
 }
 
-pub fn calc_distance(mut a: Vec<i32>, mut b: Vec<i32>) -> (i32, Duration) {
-    let now = Instant::now();
+pub fn calc_distance(mut a: Vec<i32>, mut b: Vec<i32>) -> i32 {
     a.sort();
     b.sort();
-    //println!("calc_distance: sort duration: {:?}", now.elapsed());
+
     let ret = a.iter().zip(b).map(|(a, b)| (a - b).abs()).sum();
-    (ret, now.elapsed())
+    ret
 }
 
 fn vec_to_count_map(v: Vec<i32>) -> HashMap<i32, i32> {
@@ -44,18 +41,14 @@ fn vec_to_count_map(v: Vec<i32>) -> HashMap<i32, i32> {
     map
 }
 
-pub fn count_repeats1(a: Vec<i32>, b: Vec<i32>) -> (i32, Duration) {
-    let now = Instant::now();
-
+pub fn count_repeats1(a: Vec<i32>, b: Vec<i32>) -> i32 {
     let b_counts = vec_to_count_map(b);
     let ret = a.iter().map(|i| i * b_counts.get(i).unwrap_or(&0)).sum();
 
-    (ret, now.elapsed())
+    ret
 }
 
-pub fn count_repeats2(a: Vec<i32>, b: Vec<i32>) -> (i32, Duration) {
-    let now = Instant::now();
-
+pub fn count_repeats2(a: Vec<i32>, b: Vec<i32>) -> i32 {
     let a_counts = vec_to_count_map(a);
     let b_counts = vec_to_count_map(b);
     let ret = a_counts
@@ -63,12 +56,10 @@ pub fn count_repeats2(a: Vec<i32>, b: Vec<i32>) -> (i32, Duration) {
         .map(|(i, count)| i * b_counts.get(i).unwrap_or(&0) * count)
         .sum();
 
-    (ret, now.elapsed())
+    ret
 }
 
-pub fn count_repeats3(mut a: Vec<i32>, mut b: Vec<i32>) -> (i32, Duration) {
-    let now = Instant::now();
-
+pub fn count_repeats3(mut a: Vec<i32>, mut b: Vec<i32>) -> i32 {
     a.sort();
     b.sort();
 
@@ -118,7 +109,7 @@ pub fn count_repeats3(mut a: Vec<i32>, mut b: Vec<i32>) -> (i32, Duration) {
         }
     }
 
-    (ret, now.elapsed())
+    ret
 }
 
 #[allow(unused_imports)]
@@ -127,14 +118,14 @@ mod tests {
 
     #[test]
     fn test_parse_input() {
-        let ((a, b), _) = parse_input(EXAMPLE);
-        let (distance, _) = calc_distance(a, b);
+        let (a, b) = parse_input(EXAMPLE);
+        let distance = calc_distance(a, b);
         assert_eq!(distance, 11);
     }
     #[test]
     fn test_count_repeats() {
-        let ((a, b), _) = parse_input(EXAMPLE);
-        let (repeats, _) = count_repeats1(a, b);
+        let (a, b) = parse_input(EXAMPLE);
+        let repeats = count_repeats1(a, b);
         assert_eq!(repeats, 31);
     }
 }
