@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "day01"
+name = "day02"
 version = "0.1.0"
 dependencies = [
  "utils",
@@ -12,4 +12,3 @@ dependencies = [
 [[package]]
 name = "utils"
 version = "0.1.0"
-source = "git+https://github.com/SteveStyle/utils.git#c0847d9164c0beb72262af9a00eca4895810b69e"

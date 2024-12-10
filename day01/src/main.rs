@@ -1,8 +1,7 @@
 use std::time::Instant;
+use utils::timer;
 
 mod calcdistance;
-
-mod timer;
 
 // import input.txt as a static string
 const INPUT: &str = include_str!("input.txt");
