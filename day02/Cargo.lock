@@ -12,3 +12,4 @@ dependencies = [
 [[package]]
 name = "utils"
 version = "0.1.0"
+source = "git+https://github.com/SteveStyle/utils.git#627ef9ea9f676be0773b8774679d46b3826de2a2"

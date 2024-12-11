@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 #[allow(dead_code)]
 const EXAMPLE: &str = "3   4
@@ -31,29 +31,39 @@ pub fn calc_distance(mut a: Vec<i32>, mut b: Vec<i32>) -> i32 {
 }
 
 fn vec_to_count_map(v: Vec<i32>) -> HashMap<i32, i32> {
-    let mut map = HashMap::new();
+    let mut map = HashMap::with_capacity(500);
 
     for i in v {
-        let count = map.entry(i).or_insert(0);
-        *count += 1;
+        let sum = map.entry(i).or_insert(0);
+        *sum += 1;
+    }
+
+    map
+}
+fn vec_to_sum_map(v: Vec<i32>) -> HashMap<i32, i32> {
+    let mut map = HashMap::with_capacity(500);
+
+    for i in v {
+        let sum = map.entry(i).or_insert(0);
+        *sum += i;
     }
 
     map
 }
 
 pub fn count_repeats1(a: Vec<i32>, b: Vec<i32>) -> i32 {
-    let b_counts = vec_to_count_map(b);
-    let ret = a.iter().map(|i| i * b_counts.get(i).unwrap_or(&0)).sum();
+    let b_sums = vec_to_sum_map(b);
+    let ret = a.iter().map(|i| b_sums.get(i).unwrap_or(&0)).sum();
 
     ret
 }
 
 pub fn count_repeats2(a: Vec<i32>, b: Vec<i32>) -> i32 {
     let a_counts = vec_to_count_map(a);
-    let b_counts = vec_to_count_map(b);
+    let b_sums = vec_to_sum_map(b);
     let ret = a_counts
         .iter()
-        .map(|(i, count)| i * b_counts.get(i).unwrap_or(&0) * count)
+        .map(|(i, count)| b_sums.get(i).unwrap_or(&0) * count)
         .sum();
 
     ret
@@ -86,19 +96,19 @@ pub fn count_repeats3(mut a: Vec<i32>, mut b: Vec<i32>) -> i32 {
                     }
                     count
                 };
-                let b_count = {
-                    let mut count = 1;
+                let b_sum = {
+                    let mut sum = b_val;
                     loop {
                         b_next = b_iter.next();
                         if b_next == Some(b_val) {
-                            count += 1;
+                            sum += b_val;
                         } else {
                             break;
                         }
                     }
-                    count
+                    sum
                 };
-                ret += a_val * a_count * b_count;
+                ret += a_count * b_sum;
             }
             std::cmp::Ordering::Less => {
                 a_next = a_iter.next();
@@ -108,6 +118,24 @@ pub fn count_repeats3(mut a: Vec<i32>, mut b: Vec<i32>) -> i32 {
             }
         }
     }
+
+    ret
+}
+
+fn vec_to_btreemap(v: Vec<i32>) -> BTreeMap<i32, i32> {
+    let mut map = BTreeMap::new();
+
+    for i in v {
+        let sum = map.entry(i).or_insert(0);
+        *sum += i;
+    }
+
+    map
+}
+
+pub fn count_repeats4(a: Vec<i32>, b: Vec<i32>) -> i32 {
+    let b_sums = vec_to_btreemap(b);
+    let ret = a.iter().map(|i| b_sums.get(i).unwrap_or(&0)).sum();
 
     ret
 }

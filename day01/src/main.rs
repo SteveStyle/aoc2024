@@ -21,19 +21,24 @@ fn main() {
     let repeats1 = {
         let a = a.clone();
         let b = b.clone();
-        timer::time(|| calcdistance::count_repeats1(a, b), "count_repeats1")
+        timer::time(move || calcdistance::count_repeats1(a, b), "count_repeats1")
     };
 
     let repeats2 = {
         let a = a.clone();
         let b = b.clone();
-        timer::time(|| calcdistance::count_repeats2(a, b), "count_repeats2")
+        timer::time(move || calcdistance::count_repeats2(a, b), "count_repeats2")
     };
 
     let repeats3 = {
         let a = a.clone();
         let b = b.clone();
-        timer::time(|| calcdistance::count_repeats3(a, b), "count_repeats3")
+        timer::time(move || calcdistance::count_repeats3(a, b), "count_repeats3")
+    };
+    let repeats4 = {
+        let a = a.clone();
+        let b = b.clone();
+        timer::time(move || calcdistance::count_repeats4(a, b), "count_repeats4")
     };
 
     let main_duration = now.elapsed();
@@ -43,6 +48,7 @@ fn main() {
     repeats1.print_all();
     repeats2.print_all();
     repeats3.print_all();
+    repeats4.print_all();
 
     println!("Main duration: {:?}", main_duration);
 }
