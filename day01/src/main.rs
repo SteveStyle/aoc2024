@@ -1,4 +1,5 @@
 use std::time::Instant;
+use stephen_morris_utils as utils;
 use utils::timer;
 
 mod calcdistance;

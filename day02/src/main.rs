@@ -1,3 +1,4 @@
+use stephen_morris_utils as utils;
 use utils::timer;
 
 mod check_levels;

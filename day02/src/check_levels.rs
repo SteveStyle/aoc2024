@@ -93,7 +93,8 @@ pub fn check_reports2(reports: &mut [Vec<i32>]) -> i32 {
     count
 }
 
-#[allow(unused_imports)]
+#[allow(unused_imports, dead_code)]
+
 mod tests {
     use crate::TESTINPUT;
 
@@ -101,7 +102,6 @@ mod tests {
 
     fn check_report_test(report: &[i32]) -> bool {
         //generate vectors missing out one value at a time
-        let found_solution = false;
         for i in 0..report.len() {
             let mut report2 = report.to_vec();
             report2.remove(i);
@@ -120,7 +120,7 @@ mod tests {
                     "Failed for {:?}, check_report2 {:?}, check_report_test {:?}",
                     report,
                     check_report2(&mut report.clone()),
-                    check_report_test(&mut report.clone())
+                    check_report_test(&report.clone())
                 );
                 count += 1;
             }

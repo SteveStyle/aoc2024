@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 # utils = { path = "../utils/" }
-utils = { git = "https://github.com/SteveStyle/utils.git" }
+stephen_morris_utils = { git = "https://github.com/SteveStyle/utils.git" }

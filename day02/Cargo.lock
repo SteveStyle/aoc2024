@@ -21,7 +21,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 name = "day02"
 version = "0.1.0"
 dependencies = [
- "utils",
+ "stephen_morris_utils",
 ]
 
 [[package]]
@@ -133,9 +133,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
-name = "utils"
+name = "stephen_morris_utils"
 version = "0.1.0"
-source = "git+https://github.com/SteveStyle/utils.git#c2ace3a16466d6953a0471d598fae98a95f72657"
+source = "git+https://github.com/SteveStyle/utils.git#6be6c80181de7f953fee5eda9f264a7a9c074058"
 dependencies = [
  "num",
  "num-traits",
