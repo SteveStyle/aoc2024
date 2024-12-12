@@ -19,7 +19,7 @@ pub enum Instruction {
     Do,
     Dont,
 }
-sdfs
+
 enum InstructionFormatPart {
     String(&'static str),
     Number { terminator: &'static str },
