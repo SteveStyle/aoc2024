@@ -18,6 +18,13 @@ fn main() {
         || check_levels::check_reports(&mut reports),
         "check_reports",
     );
+
+    let count2 = timer::time(
+        || check_levels::check_reports2(&mut reports),
+        "check_reports2",
+    );
+
     reports.print_duration();
     count.print_all();
+    count2.print_all();
 }
