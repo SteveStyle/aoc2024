@@ -18,7 +18,7 @@ pub enum Instruction {
     Mul(i64, i64),
     Do,
     Dont,
-}sdfd
+}
 
 enum InstructionFormatPart {
     String(&'static str),
