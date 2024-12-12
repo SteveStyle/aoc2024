@@ -24,7 +24,7 @@ enum InstructionFormatPart {
     String(&'static str),
     Number { terminator: &'static str },
 }
-df
+
 use InstructionFormatPart as Part;
 
 const MULFORMAT: [Part; 3] = [
