@@ -1,40 +1,34 @@
-trait Parser<'a> : Iterator {
-    fn new(slice: &str) -> Self;
+struct FullParseInstruction<'a> {
+    slice: &'a str,
+    parsers: &[ParseInstruction],
+}
 
-    fn get_slice() -> &'a str;
-    fn set_slice(slice: &str);
-
-    fn parse() -> Option<(Self::Item, &'a str)>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let (item, slice) = Self::parse()?;
-        Self::set_slice(slice);
-        Some(item)
+impl<'a> FullParseInstruction<'a> {
+    fn new(slice: &str) -> FullParseInstruction {
+        FullParseInstruction { slice }
     }
-
-    fn parse_all() -> (Vec<Self::Item>, &'a str) {
-        let mut v = Vec::new();
-        while let Some(value) = Self::next() {
-            v.push(value);
-        }
-        (v, Self::get_slice())
+    fn remaining_slice(&'a self) -> &'a str {
+        self.slice
     }
 }
 
-
-struct InstructionParser<'a> {
-    data: &'a str,
+trait Parse<I> {
+    fn parse_once(slice: &str) -> (Option<I>, &str);
+}
+struct ParseInstruction {
+    pattern: InstructionFormat,
 }
 
-impl<'a, T> Parser<'a, T> for InstructionParser<'a> {
-    fn new(slice: &str) -> Self { 
-        Self {data: slice}
-     };
+impl ParseInstruction {
+    fn new(pattern: InstructionFormat) -> ParseInstruction {
+        ParseInstruction { pattern }
+    }
 }
 
-impl<T> Iterator for InstructionParser<T> {
-    type Item = T;
-    fn next(&mut self) -> Option<Self::Item> {}
+impl Parse<Instruction> for ParseInstruction {
+    fn parse_once(slice: &str) -> (Option<Instruction>, &str) {
+        (None, slice)
+    }
 }
 
 trait PatternPart<T> {
@@ -83,7 +77,7 @@ const DONTFORMAT: InstructionFormat = InstructionFormat {
 const INSTRUCTIONFORMATS: [InstructionFormat; 3] = [MULLFORMAT, DOFORMAT, DONTFORMAT];
 
 impl InstructionFormat {
-    fn parse_value(slice: &mut &str) -> Option(Instruction) {}
+    fn parse_value(slice: &mut &str) -> Option<Instruction> {}
 }
 
 pub fn parse_input2(input: &str) -> Vec<Instruction> {
