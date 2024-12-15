@@ -1,4 +1,5 @@
 #![allow(dead_code, unused_variables, unused_mut)]
+use crate::parser;
 use regex::Regex;
 
 // parse the input string to find the pattern 'mul(a,b)'.  Return each pair as a tuple in a vector.  Use a regex expression to find the pattern.
@@ -12,36 +13,6 @@ pub fn parse_input(input: &str) -> Vec<(i64, i64)> {
             )
         })
         .collect()
-}
-
-pub enum Instruction {
-    Mul(i64, i64),
-    Do,
-    Dont,
-}
-
-enum InstructionFormatPart {
-    String(&'static str),
-    Number { terminator: &'static str },
-}
-
-use InstructionFormatPart as Part;
-
-const MULFORMAT: [Part; 3] = [
-    Part::String("Mul("),
-    Part::Number { terminator: "," },
-    Part::Number { terminator: ")" },
-];
-const DOFORMAT: [Part; 1] = [Part::String("Do()")];
-const DONTFORMAT: [Part; 1] = [Part::String("Don't()")];
-
-const INSTRUCTIONFORMATS: [&[Part]; 3] = [&MULFORMAT, &DOFORMAT, &DONTFORMAT];
-
-pub fn parse_input2(input: &str) -> Vec<Instruction> {
-    let ret = Vec::new();
-    let mut i = 0;
-
-    ret
 }
 
 pub fn sum_products(pairs: &[(i64, i64)]) -> i64 {

@@ -3,6 +3,7 @@ use stephen_morris_utils as utils;
 use utils::timer;
 
 mod parse_and_calc;
+mod parser;
 
 const INPUT: &str = include_str!("input.txt");
 
