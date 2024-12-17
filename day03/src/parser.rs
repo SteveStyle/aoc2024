@@ -1,38 +1,28 @@
-struct FullParseInstruction<'a> {
-    slice: &'a str,
-    parsers: &[ParseInstruction],
-}
+use num_traits::{ConstOne, ConstZero, Num};
 
-impl<'a> FullParseInstruction<'a> {
-    fn new(slice: &str) -> FullParseInstruction {
-        FullParseInstruction { slice }
-    }
-    fn remaining_slice(&'a self) -> &'a str {
-        self.slice
+trait ParseItemSteve<'a, T> {
+    fn parse_item(slice: &'a str, term: &str) -> Option<(&'a str, T)> {
+        None
     }
 }
 
-trait Parse<I> {
-    fn parse_once(slice: &str) -> (Option<I>, &str);
-}
-struct ParseInstruction {
-    pattern: InstructionFormat,
-}
-
-impl ParseInstruction {
-    fn new(pattern: InstructionFormat) -> ParseInstruction {
-        ParseInstruction { pattern }
+impl<'a, T> ParseItemSteve<'a, T> for T
+where
+    T: Num + ConstZero + ConstOne,
+{
+    fn parse_item(slice: &'a str, term: &str) -> Option<(&'a str, T)> {
+        None
     }
 }
 
-impl Parse<Instruction> for ParseInstruction {
-    fn parse_once(slice: &str) -> (Option<Instruction>, &str) {
-        (None, slice)
+impl<'a> ParseItemSteve<'a, bool> for bool {
+    fn parse_item(slice: &'a str, term: &str) -> Option<(&'a str, bool)> {
+        if slice.starts_with(term) {
+            Some((&slice[term.len()..], true))
+        } else {
+            None
+        }
     }
-}
-
-trait PatternPart<T> {
-    fn parse(slice: &str) -> Option<(Vec<T>, &str)>;
 }
 
 pub enum Instruction {
