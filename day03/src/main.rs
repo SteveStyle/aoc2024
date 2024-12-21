@@ -13,6 +13,7 @@ const TESTINPUT2: &str =
     "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))";
 
 fn main() {
+    let empty = timer::time(|| 0, "Parse empty");
     let instructions = timer::time(|| parse_and_calc::parse_input(INPUT), "Parse input");
     let sum = timer::time(
         || parse_and_calc::sum_products(&instructions),
@@ -22,10 +23,11 @@ fn main() {
     println!("{} instructions found", instructions.len());
 
     let sum2 = timer::time(
-        || parse_and_calc::sum_products2(&instructions),
+        || parse_and_calc::sum_products22(&instructions),
         "Sum products2",
     );
 
+    empty.print_all();
     instructions.print_duration();
     sum.print_all();
     sum2.print_all();

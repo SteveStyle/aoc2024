@@ -1,8 +1,8 @@
 //Enhanced ParseItem Trait Implementation
 
+use num_traits::{ConstOne, ConstZero, Num, PrimInt};
+use std::ops::Neg;
 use std::str::FromStr;
-
-use num_traits::{ConstOne, ConstZero, Num};
 
 /// A trait for parsing items from a string slice
 trait ParseItemTerm<'a, T> {
@@ -20,9 +20,43 @@ trait ParseItem<'a, T> {
 // Implementation for a number type that parses until terminator
 impl<'a, T> ParseItemTerm<'a, T> for T
 where
-    T: Num + Int + ConstZero + ConstOne + FromStr,
+    T: Num + Neg<Output = T> + PrimInt + ConstZero + ConstOne + FromStr,
 {
     fn parse_item(slice: &'a str, term: &str) -> Option<(&'a str, T)> {
+        if slice.is_empty() {
+            return None;
+        }
+        let mut sign = T::one();
+        let mut chars = slice.char_indices();
+        let mut next = chars.next();
+        match next {
+            Some((_, c)) if c == '-' || c == '+' => {
+                if c == '-' {
+                    sign = -T::one();
+                }
+                next = chars.next();
+            }
+            _ => {}
+        }
+
+        let (_, char) = next?;
+        let mut number: T = sign * T::from(char.to_digit(10)?)?;
+        next = chars.next();
+        while let Some((_, c)) = next {
+            if c.is_ascii_digit() {
+                number = number * T::from(10).unwrap() + T::from(c.to_digit(10).unwrap()).unwrap();
+            } else {
+                break;
+            }
+            next = chars.next();
+        }
+
+        match next {
+            Some((i, _)) => Some((slice[i..].strip_prefix(term)?, number)),
+            None => term.is_empty().then_some((&slice[slice.len()..], number)),
+        }
+    }
+    /*     fn parse_item(slice: &'a str, term: &str) -> Option<(&'a str, T)> {
         let slice = slice.trim_start();
 
         // Find the terminator or use end of string
@@ -35,7 +69,7 @@ where
         let number = num_str.trim().parse().ok()?;
 
         Some((rest.strip_prefix(term).unwrap_or(rest), number))
-    }
+    } */
 }
 
 struct StringMatches;

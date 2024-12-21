@@ -36,6 +36,25 @@ pub fn sum_products2(input: &Vec<Instruction>) -> i64 {
     sum
 }
 
+pub fn sum_products22(input: &Vec<Instruction>) -> i64 {
+    let mut sum = 0;
+    let mut enabled: i64 = 1;
+    for instruction in input {
+        match instruction {
+            Instruction::Mul(a, b) => {
+                sum += a * b * enabled;
+            }
+            Instruction::Do => {
+                enabled = 1;
+            }
+            Instruction::Dont => {
+                enabled = 0;
+            }
+        }
+    }
+    sum
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -43,7 +62,7 @@ mod tests {
     #[test]
     fn test_sum_products2() {
         let v = parse_input(crate::TESTINPUT2);
-        let sum = sum_products2(&v);
+        let sum = sum_products22(&v);
         assert_eq!(sum, 48);
     }
 
