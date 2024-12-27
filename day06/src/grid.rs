@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use stephen_morris_utils::pos::Position;
+
 #[derive(Debug, Clone)]
 pub struct Grid<T: Clone + Default> {
     data: Vec<T>,
@@ -42,6 +44,30 @@ impl<T: Clone + Default> Grid<T> {
 
     pub fn set(&mut self, row: usize, col: usize, value: T) {
         self.data[row * self.width + col] = value;
+    }
+
+
+    pub fn get_pos(&self, pos: Position<usize>) -> &T {
+        &self.get(pos.y, pos.x)
+    }
+
+    pub fn get_mut_pos(&mut self, pos: Position<usize>) -> &mut T {
+        &mut self.get_mut(pos.y, pos.x)
+    }
+
+    pub fn set_pos(&mut self, pos: Position<usize>, value: T) {
+        self.set(pos.y, pos.x, value);
+    }
+    
+    pub fn find(&self, value: T) -> Option<(usize, usize)> {
+        for row in 0..self.height {
+            for col in 0..self.width {
+                if self.get(row, col) == &value {
+                    return Some((row, col));
+                }
+            }
+        }
+        None
     }
 }
 
