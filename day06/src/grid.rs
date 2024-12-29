@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use stephen_morris_utils::pos::Position;
+use stephen_morris_utils::pos::{Direction, Position};
 
 #[derive(Debug, Clone)]
 pub struct Grid<T: Clone + Default> {
@@ -9,7 +9,7 @@ pub struct Grid<T: Clone + Default> {
     pub height: usize,
 }
 
-impl<T: Clone + Default> Grid<T> {
+impl<T: Clone + Default + PartialEq> Grid<T> {
     pub fn empty_with_capacity(width: usize, height: usize) -> Self {
         Self {
             data: Vec::with_capacity(width * height),
@@ -52,7 +52,7 @@ impl<T: Clone + Default> Grid<T> {
     }
 
     pub fn get_mut_pos(&mut self, pos: Position<usize>) -> &mut T {
-        &mut self.get_mut(pos.y, pos.x)
+        self.get_mut(pos.y, pos.x)
     }
 
     pub fn set_pos(&mut self, pos: Position<usize>, value: T) {
@@ -62,12 +62,21 @@ impl<T: Clone + Default> Grid<T> {
     pub fn find(&self, value: T) -> Option<(usize, usize)> {
         for row in 0..self.height {
             for col in 0..self.width {
-                if self.get(row, col) == &value {
+                if *self.get(row, col) == value {
                     return Some((row, col));
                 }
             }
         }
         None
+    }
+    pub fn test_bounds( &self, pos: Position<usize>, direction :Direction ) -> bool {
+        match direction {
+            Direction::Right => pos.x < self.width - 1,
+            Direction::Down => pos.y < self.height - 1,
+            Direction::Left => pos.x > 0,
+            Direction::Up => pos.y > 0,
+            Direction::Wait => true,
+        }
     }
 }
 
@@ -129,7 +138,7 @@ pub struct GridIter<T: Clone + Default> {
     col: usize,
 }
 
-impl<T: Clone + Default> Iterator for GridIter<T> {
+impl<T: Clone + Default + PartialEq> Iterator for GridIter<T> {
     type Item = (usize, usize, T);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -204,6 +213,11 @@ impl<'a> IntoIterator for &'a Grid<u8> {
         }
     }
 }
+
+
+
+
+
 
 #[cfg(test)]
 mod tests {
