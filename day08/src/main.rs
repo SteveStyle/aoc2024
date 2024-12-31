@@ -26,7 +26,12 @@ fn main() {
         || antinodes::count_antinodes(&antenna_map),
         "count_antinodes",
     );
+    let count2 = timer::time(
+        || antinodes::count_antinodes2(&antenna_map),
+        "count_antinodes2",
+    );
 
     antenna_map.print_duration();
     count.print_all();
+    count2.print_all();
 }
