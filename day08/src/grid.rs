@@ -2,12 +2,15 @@
 
 use stephen_morris_utils::pos::{Direction, Position};
 
-#[derive(Debug, Clone)]
-pub struct Grid<T: Clone + Default> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct Grid<T: Clone + Default + PartialEq> {
     data: Vec<T>,
     pub width: usize,
     pub height: usize,
 }
+
+pub type Vector = Position<isize>;
+pub type Point = Position<usize>;
 
 impl<T: Clone + Default + PartialEq> Grid<T> {
     pub fn empty_with_capacity(width: usize, height: usize) -> Self {
@@ -34,16 +37,16 @@ impl<T: Clone + Default + PartialEq> Grid<T> {
         }
     }
 
-    pub fn get(&self, row: usize, col: usize) -> &T {
-        &self.data[row * self.width + col]
+    pub fn get(&self, x: usize, y: usize) -> &T {
+        &self.data[y * self.width + x]
     }
 
-    pub fn get_mut(&mut self, row: usize, col: usize) -> &mut T {
-        &mut self.data[row * self.width + col]
+    pub fn get_mut(&mut self, x: usize, y: usize) -> &mut T {
+        &mut self.data[y * self.width + x]
     }
 
-    pub fn set(&mut self, row: usize, col: usize, value: T) {
-        self.data[row * self.width + col] = value;
+    pub fn set(&mut self, x: usize, y: usize, value: T) {
+        self.data[y * self.width + x] = value;
     }
 
     pub fn get_pos(&self, pos: Position<usize>) -> &T {
@@ -59,16 +62,37 @@ impl<T: Clone + Default + PartialEq> Grid<T> {
     }
 
     pub fn find(&self, value: T) -> Option<(usize, usize)> {
-        for row in 0..self.height {
-            for col in 0..self.width {
-                if *self.get(row, col) == value {
-                    return Some((row, col));
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if *self.get(x, y) == value {
+                    return Some((x, y));
                 }
             }
         }
         None
     }
-    pub fn test_bounds(&self, pos: Position<usize>, direction: Direction) -> bool {
+
+    pub fn vec2point(&self, vec: Vector) -> Option<Point> {
+        if vec.x >= 0 && vec.x < self.width as isize && vec.y >= 0 && vec.y < self.height as isize {
+            Position::<usize>::new_try_from_position(vec).ok()
+        } else {
+            None
+        }
+    }
+
+    pub fn point2vec(&self, point: Point) -> Option<Vector> {
+        Vector::new_try_from_position(point).ok()
+    }
+
+    pub fn test_bound(&self, pos: Position<usize>) -> Option<Position<usize>> {
+        if pos.x < self.width && pos.y < self.height {
+            Some(pos)
+        } else {
+            None
+        }
+    }
+
+    pub fn test_bound_direction(&self, pos: Position<usize>, direction: Direction) -> bool {
         match direction {
             Direction::Right => pos.x < self.width - 1,
             Direction::Down => pos.y < self.height - 1,
@@ -117,7 +141,7 @@ impl<T: Clone + Default + PartialEq> Grid<T> {
     }
 }
 
-impl<T: Clone + Default> From<Vec<Vec<T>>> for Grid<T> {
+impl<T: Clone + Default + PartialEq> From<Vec<Vec<T>>> for Grid<T> {
     fn from(v: Vec<Vec<T>>) -> Self {
         let height = v.len();
         let width = v[0].len();
@@ -134,7 +158,7 @@ impl<T: Clone + Default> From<Vec<Vec<T>>> for Grid<T> {
     }
 }
 
-impl<T: Clone + Default> From<&[&[T]]> for Grid<T> {
+impl<T: Clone + Default + PartialEq> From<&[&[T]]> for Grid<T> {
     fn from(v: &[&[T]]) -> Self {
         let height = v.len();
         let width = v[0].len();
@@ -169,30 +193,26 @@ impl From<&str> for Grid<u8> {
     }
 }
 
-pub struct GridIter<T: Clone + Default> {
+pub struct GridIter<T: Clone + Default + PartialEq> {
     grid: Grid<T>,
-    row: usize,
-    col: usize,
+    x: usize,
+    y: usize,
 }
 
 impl<T: Clone + Default + PartialEq> Iterator for GridIter<T> {
     type Item = (usize, usize, T);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.row == self.grid.height {
+        if self.y == self.grid.height {
             return None;
         }
 
-        let item = (
-            self.row,
-            self.col,
-            self.grid.get(self.row, self.col).clone(),
-        );
+        let item = (self.x, self.y, self.grid.get(self.x, self.y).clone());
 
-        self.col += 1;
-        if self.col == self.grid.width {
-            self.col = 0;
-            self.row += 1;
+        self.x += 1;
+        if self.x == self.grid.width {
+            self.x = 0;
+            self.y += 1;
         }
 
         Some(item)
@@ -206,32 +226,32 @@ impl IntoIterator for Grid<u8> {
     fn into_iter(self) -> Self::IntoIter {
         GridIter {
             grid: self,
-            row: 0,
-            col: 0,
+            x: 0,
+            y: 0,
         }
     }
 }
 
-pub struct GridIterRef<'a, T: Clone + Default> {
+pub struct GridIterRef<'a, T: Clone + Default + PartialEq> {
     grid: &'a Grid<T>,
-    row: usize,
-    col: usize,
+    x: usize,
+    y: usize,
 }
 
 impl<'a> Iterator for GridIterRef<'a, u8> {
     type Item = (usize, usize, &'a u8);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.row == self.grid.height {
+        if self.y == self.grid.height {
             return None;
         }
 
-        let item = (self.row, self.col, self.grid.get(self.row, self.col));
+        let item = (self.x, self.y, self.grid.get(self.x, self.y));
 
-        self.col += 1;
-        if self.col == self.grid.width {
-            self.col = 0;
-            self.row += 1;
+        self.x += 1;
+        if self.x == self.grid.width {
+            self.x = 0;
+            self.y += 1;
         }
 
         Some(item)
@@ -245,8 +265,8 @@ impl<'a> IntoIterator for &'a Grid<u8> {
     fn into_iter(self) -> Self::IntoIter {
         GridIterRef {
             grid: self,
-            row: 0,
-            col: 0,
+            x: 0,
+            y: 0,
         }
     }
 }
@@ -262,33 +282,32 @@ mod tests {
     fn test_grid() {
         let v = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
         let grid = Grid::from(v.clone());
-        for (row, col, value) in grid {
-            println!("{row} {col} {value}")
+        for (x, y, value) in grid {
+            println!("{x} {y} {value}")
         }
     }
     #[test]
     fn test_grid2() {
         let v = vec![vec![1, 2, 3], vec![4, 5, 6], vec![7, 8, 9]];
         let grid = Grid::from(v.clone());
-        for (row, col, value) in &grid {
-            println!("{row} {col} {value}")
+        for (x, y, value) in &grid {
+            println!("{x} {y} {value}")
         }
     }
     #[test]
     fn test_grid3() {
         let grid = Grid::from(crate::TESTINPUT);
-        for (row, col, value) in &grid {
-            println!("{row} {col} {}", *value as char)
+        for (x, y, value) in &grid {
+            println!("{x} {y} {}", *value as char)
         }
-        // print as a grid showing just the characters
     }
     #[test]
     fn test_grid4() {
         let grid = Grid::from(crate::TESTINPUT);
         // print as a grid showing just the characters
-        for row in 0..grid.height {
-            for col in 0..grid.width {
-                print!("{}", *grid.get(row, col) as char);
+        for x in 0..grid.height {
+            for y in 0..grid.width {
+                print!("{}", *grid.get(x, y) as char);
             }
             println!();
         }

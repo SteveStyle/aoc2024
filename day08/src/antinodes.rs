@@ -1,15 +1,20 @@
-use std::{collections::HashMap, default};
+use std::{
+    collections::{HashMap, HashSet},
+    default,
+};
 
 use stephen_morris_utils::pos::Position;
 
 use crate::grid::Grid;
 type Cell = Option<u8>;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct AntennaLocations {
     antenna: u8,
     locations: Vec<Position<usize>>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct AntennaMap {
     grid: Grid<Cell>,
     antennas: HashMap<u8, Vec<Position<usize>>>,
@@ -31,4 +36,35 @@ pub fn parse_input(input: &str) -> AntennaMap {
         }
     }
     AntennaMap { grid, antennas }
+}
+
+pub fn count_antinodes(antenna_map: &AntennaMap) -> usize {
+    let mut antinodes: HashSet<Position<usize>> = HashSet::new();
+    let grid = &antenna_map.grid;
+    for (antenna, position_list) in &antenna_map.antennas {
+        for i in 0..position_list.len() - 1 {
+            for j in i + 1..position_list.len() {
+                let i = grid.point2vec(position_list[i]).unwrap();
+                let j = grid.point2vec(position_list[j]).unwrap();
+                let i_side = i - (j - i);
+                let j_side = j + (j - i);
+                if let Some(p) = grid.vec2point(i_side) {
+                    antinodes.insert(p);
+                }
+                if let Some(p) = grid.vec2point(j_side) {
+                    antinodes.insert(p);
+                }
+            }
+        }
+    }
+    antinodes.len()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_count_antinodes() {
+        let antenna_map = super::parse_input(crate::TESTINPUT);
+        assert_eq!(super::count_antinodes(&antenna_map), 14);
+    }
 }

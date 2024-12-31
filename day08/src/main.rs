@@ -21,5 +21,12 @@ mod antinodes;
 mod grid;
 
 fn main() {
-    println!("Hello, world!");
+    let antenna_map = timer::time(|| antinodes::parse_input(INPUT), "parse_input");
+    let count = timer::time(
+        || antinodes::count_antinodes(&antenna_map),
+        "count_antinodes",
+    );
+
+    antenna_map.print_duration();
+    count.print_all();
 }
