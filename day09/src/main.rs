@@ -8,6 +8,7 @@ const INPUT: &str = include_str!("input.txt");
 const TESTINPUT: &str = "2333133121414131402";
 
 mod compact;
+mod compact2;
 
 fn main() {
     let disk = timer::time(|| compact::parse_input(INPUT), "parse_input");
