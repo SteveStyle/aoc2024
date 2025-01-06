@@ -125,18 +125,13 @@ impl<T: Clone + Default + PartialEq> Grid<T> {
         }
     }
     pub fn test_move(&self, pos: Position<usize>, x: isize, y: isize) -> Option<Position<usize>> {
-        let new_x;
-        let new_y;
-        if (0..self.width).contains(&((pos.x as isize + x) as usize)) {
-            new_x = pos.x as isize + x;
-        } else {
+        if !(0..self.width).contains(&((pos.x as isize + x) as usize))
+            || !(0..self.height).contains(&((pos.y as isize + y) as usize))
+        {
             return None;
         }
-        if (0..self.height).contains(&((pos.y as isize + y) as usize)) {
-            new_y = pos.y as isize + y;
-        } else {
-            return None;
-        }
+        let new_x = pos.x as isize + x;
+        let new_y = pos.y as isize + y;
         Some(Position::new(new_x as usize, new_y as usize))
     }
 }
@@ -189,6 +184,17 @@ impl From<&str> for Grid<u8> {
             data,
             width,
             height,
+        }
+    }
+}
+
+impl Grid<u8> {
+    pub fn print(&self) {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                print!("{}", *self.get(x, y) as char);
+            }
+            println!();
         }
     }
 }

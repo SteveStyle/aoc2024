@@ -33,8 +33,40 @@ fn find_heads(point: Point, v: u8, hashset: &mut HashSet<Point>, grid: &Grid<u8>
     }
 }
 
+pub fn trailheads2(grid: &Grid<u8>) -> Count {
+    let mut count = 0;
+    for (x, y, &v) in grid {
+        if v == b'0' {
+            count += find_heads2(Point::new(x, y), b'0', grid);
+            //println!("trailhead at ({x},{y}) has count {}", hashset.len());
+        }
+    }
+    count
+}
+fn find_heads2(point: Point, v: u8, grid: &Grid<u8>) -> Count {
+    if v == b'9' {
+        1
+    } else {
+        let mut count = 0;
+        for (i, j) in [(-1, 0), (0, -1), (1, 0), (0, 1)] {
+            if let Some(new_point) = grid.test_move(point, i, j) {
+                if *grid.get_pos(new_point) == v + 1 {
+                    count += find_heads2(new_point, v + 1, grid);
+                }
+            }
+        }
+        count
+    }
+}
+
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn test_part2() {
+        let grid = super::parse_input(crate::TESTINPUT);
+        assert_eq!(super::trailheads2(&grid), 81);
+    }
     #[test]
     fn test1() {
         test_find_heads(

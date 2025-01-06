@@ -1,5 +1,6 @@
 #![allow(dead_code, unused)]
 use stephen_morris_utils::timer;
+use trailheads::trailheads2;
 
 const INPUT: &str = include_str!("input.txt");
 #[allow(dead_code)]
@@ -21,4 +22,8 @@ fn main() {
 
     grid.print_duration();
     trailheads.print_all();
+
+    let trailheads2 = timer::time(|| trailheads2(&grid), "trailheads2");
+
+    trailheads2.print_all();
 }
