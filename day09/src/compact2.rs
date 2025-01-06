@@ -6,12 +6,14 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use stephen_morris_utils::pos;
+
 use crate::vector_linked_list::IDRef;
 
-use super::vector_linked_list::{LLError, LLNode, VLL};
+use super::vector_linked_list::{LLError, LLNode, Vll};
 
 type Disk = Vec<Option<u16>>;
-type BlocksSize = u32;
+type BlocksSize = u64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct FileSize {
@@ -21,16 +23,16 @@ pub struct FileSize {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FileMap {
-    nodes: VLL<FileSize>,
+    nodes: Vll<FileSize>,
 }
 
 impl FileMap {
     fn new() -> FileMap {
-        FileMap { nodes: VLL::new() }
+        FileMap { nodes: Vll::new() }
     }
     fn with_capacity(capacity: usize) -> FileMap {
         FileMap {
-            nodes: VLL::with_capacity(capacity),
+            nodes: Vll::with_capacity(capacity),
         }
     }
     fn push(&mut self, blocks: BlocksSize, free: BlocksSize) {
@@ -43,12 +45,12 @@ impl FileMap {
         let old_prev = self.nodes.nodes[id].prev.unwrap();
         let FileSize {
             blocks,
-            free_blocks: free,
+            free_blocks,
         } = self.nodes.nodes[id].data;
-        if self.nodes.nodes[after].data.free_blocks < free {
+        if self.nodes.nodes[after].data.free_blocks < blocks {
             return false;
         }
-        self.nodes.nodes[old_prev].data.free_blocks += blocks + free;
+        self.nodes.nodes[old_prev].data.free_blocks += blocks + free_blocks;
         self.nodes.nodes[id].data.free_blocks = self.nodes.nodes[after].data.free_blocks - blocks;
         self.nodes.nodes[after].data.free_blocks = 0;
         self.nodes.move_after(after, id).unwrap();
@@ -81,6 +83,9 @@ pub fn compact_disk(file_map: &FileMap) -> FileMap {
     for old_block in file_map.nodes.iter_rev() {
         target_block = None;
         for possible_block in new_file_map.nodes.iter() {
+            if possible_block.id == old_block.id {
+                break;
+            }
             if possible_block.data.free_blocks >= old_block.data.blocks {
                 target_block = Some(possible_block.id);
                 break;
@@ -110,7 +115,11 @@ pub fn checksum(file_map: &FileMap) -> BlocksSize {
     } in file_map.nodes.iter()
     {
         sum += BlocksSize::try_from(*id).unwrap()
-            * (triangular_number(position + blocks) - triangular_number(position));
+            * if position == 0 {
+                triangular_number(blocks - 1)
+            } else {
+                triangular_number(position + blocks - 1) - triangular_number(position - 1)
+            };
         position += blocks + free_blocks;
     }
     sum
@@ -125,11 +134,21 @@ fn disk2string(file_map: &FileMap) -> String {
             acc.extend(std::iter::repeat(b'.').take(x.data.free_blocks as usize));
             acc
         });
+    println!("disk2string ret is:{:?}", ret);
     String::from_utf8(ret).unwrap()
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_disk2string() {
+        let input = "2333133121414131402";
+        let file_map = super::parse_input(input);
+        println!("{:?}", file_map);
+        let disk_str = super::disk2string(&file_map);
+        println!("{:?}", disk_str);
+        //assert_eq!(disk_str, "00...111...2...333.44.5555.6666.777.888899");
+    }
     #[test]
     fn test_parse_input() {
         let input = "2333133121414131402";

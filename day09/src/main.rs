@@ -19,4 +19,12 @@ fn main() {
     disk.print_duration();
     compacted_disk.print_duration();
     checksum.print_all();
+
+    let file_map = timer::time(|| compact2::parse_input(INPUT), "parse_input");
+    let compact_disk = timer::time(|| compact2::compact_disk(&file_map), "compact_disk");
+    let checksum = timer::time(|| compact2::checksum(&compact_disk), "checksum");
+
+    file_map.print_duration();
+    compact_disk.print_duration();
+    checksum.print_all();
 }
