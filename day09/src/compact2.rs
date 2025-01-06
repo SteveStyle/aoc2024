@@ -1,66 +1,74 @@
 #![allow(dead_code, unused)]
 
-type Disk = Vec<Option<u16>>;
+use std::{
+    fs::File,
+    io::repeat,
+    ops::{Deref, DerefMut},
+};
 
-#[derive(Clone)]
-pub struct File {
-    id: u16,
-    blocks: usize,
-    free: usize,
-    prev: Option<usize>,
-    next: Option<usize>,
+use crate::vector_linked_list::IDRef;
+
+use super::vector_linked_list::{LLError, LLNode, VLL};
+
+type Disk = Vec<Option<u16>>;
+type BlocksSize = u32;
+
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
+pub struct FileSize {
+    blocks: BlocksSize,
+    free_blocks: BlocksSize,
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct FileMap {
-    data: Vec<File>,
-    first : Option<usize>,
-    last : Option<usize>,
+    nodes: VLL<FileSize>,
 }
 
 impl FileMap {
     fn new() -> FileMap {
-        FileMap { data: Vec::new (), first: None, last: None }
+        FileMap { nodes: VLL::new() }
     }
-    fn with_capacity(capacity: usize) ->FileMap {
-        FileMap {data: Vec::with_capacity(capacity), first: None, last: None}
-    }
-    fn push( &mut self, id: u16, blocks: usize, free: usize ) {
-        if self.first.is_none() {
-            self.data.push( File { id, blocks, free, prev: None, next: None });
-            self.first = Some(0);
-            self.last = Some(0);
-        }
-        else {
-            let last = self.last.unwrap();
-            self.data[last].next = Some(self.data.len());
-            self.data.push(File {id, blocks, free, prev: Some(last), next: None});
-            self.last = Some(self.data.len()-1);
+    fn with_capacity(capacity: usize) -> FileMap {
+        FileMap {
+            nodes: VLL::with_capacity(capacity),
         }
     }
-    fn move_after(&mut self, after: usize, location: usize, id: u16, blocks: usize ) {
-        
+    fn push(&mut self, blocks: BlocksSize, free: BlocksSize) {
+        self.nodes.push_last(FileSize {
+            blocks,
+            free_blocks: free,
+        });
     }
-
+    fn move_after(&mut self, after: usize, id: usize) -> bool {
+        let old_prev = self.nodes.nodes[id].prev.unwrap();
+        let FileSize {
+            blocks,
+            free_blocks: free,
+        } = self.nodes.nodes[id].data;
+        if self.nodes.nodes[after].data.free_blocks < free {
+            return false;
+        }
+        self.nodes.nodes[old_prev].data.free_blocks += blocks + free;
+        self.nodes.nodes[id].data.free_blocks = self.nodes.nodes[after].data.free_blocks - blocks;
+        self.nodes.nodes[after].data.free_blocks = 0;
+        self.nodes.move_after(after, id).unwrap();
+        true
+    }
 }
 
 pub fn parse_input(input: &str) -> FileMap {
     let length = input.len();
-    let mut file_map = Vec::with_capacity(length);
-    let mut id = 0u16;
+    let mut file_map = FileMap::with_capacity(length);
+    let mut id = 0_usize;
     let mut bytes = input.bytes();
 
     loop {
-        let blocks = (bytes.next().unwrap() - b'0') as usize;
-        if let Some(free) = bytes.next() {
-            let free = (free - b'0') as usize;
-            file_map.push(File { id, blocks, free });
-            id += 1;
+        let blocks = (bytes.next().unwrap() - b'0') as BlocksSize;
+        if let Some(free_blocks) = bytes.next() {
+            let free_blocks = (free_blocks - b'0') as BlocksSize;
+            file_map.push(blocks, free_blocks);
         } else {
-            file_map.push(File {
-                id,
-                blocks,
-                free: 0,
-            });
+            file_map.push(blocks, 0);
             break;
         }
     }
@@ -69,47 +77,55 @@ pub fn parse_input(input: &str) -> FileMap {
 
 pub fn compact_disk(file_map: &FileMap) -> FileMap {
     let mut new_file_map = file_map.clone();
-    let mut i = 0_usize;
-    let mut j = file_map.len() - 1;
-    loop {
-        let mut i = 0;
-        for 
-        while i < j && new_file_map[i].is_some() {
-            i += 1;
+    let mut target_block: IDRef = None;
+    for old_block in file_map.nodes.iter_rev() {
+        target_block = None;
+        for possible_block in new_file_map.nodes.iter() {
+            if possible_block.data.free_blocks >= old_block.data.blocks {
+                target_block = Some(possible_block.id);
+                break;
+            }
         }
-        while i < j && new_file_map[j].is_none() {
-            j -= 1;
+        if let Some(target_block) = target_block {
+            new_file_map.move_after(target_block, old_block.id);
         }
-        if i >= j {
-            break;
-        }
-        new_file_map[i] = new_file_map[j];
-        new_file_map[j] = None;
-        i += 1;
-        j -= 1;
     }
     new_file_map
 }
 
-pub fn checksum(disk: &Disk) -> usize {
+pub fn checksum(file_map: &FileMap) -> BlocksSize {
+    fn triangular_number(n: BlocksSize) -> BlocksSize {
+        (n * (n + 1)) >> 1
+    }
     let mut sum = 0;
-    for (i, &c) in disk.iter().enumerate() {
-        match c {
-            Some(v) => sum += i * (v as usize),
-            None => break,
-        }
+    let mut position = 0;
+    for LLNode {
+        id,
+        prev: _,
+        next: _,
+        data: FileSize {
+            blocks,
+            free_blocks,
+        },
+    } in file_map.nodes.iter()
+    {
+        sum += BlocksSize::try_from(*id).unwrap()
+            * (triangular_number(position + blocks) - triangular_number(position));
+        position += blocks + free_blocks;
     }
     sum
 }
 
-fn disk2string(disk: &Disk) -> String {
-    disk.iter().fold(String::new(), |mut acc, x| {
-        match x {
-            Some(id) => acc.push_str(&id.to_string()),
-            None => acc.push('.'),
-        }
-        acc
-    })
+fn disk2string(file_map: &FileMap) -> String {
+    let ret = file_map
+        .nodes
+        .iter()
+        .fold(Vec::<u8>::new(), |mut acc: Vec<u8>, x| {
+            acc.extend(std::iter::repeat(x.id as u8 + b'0').take(x.data.blocks as usize));
+            acc.extend(std::iter::repeat(b'.').take(x.data.free_blocks as usize));
+            acc
+        });
+    String::from_utf8(ret).unwrap()
 }
 
 #[cfg(test)]
@@ -117,20 +133,20 @@ mod tests {
     #[test]
     fn test_parse_input() {
         let input = "2333133121414131402";
-        let disk = super::parse_input(input);
+        let file_map = super::parse_input(input);
         //assert_eq!(disk.len(), 20);
-        let disk_str = super::disk2string(&disk);
+        let disk_str = super::disk2string(&file_map);
         println!("{:?}", disk_str);
         assert_eq!(disk_str, "00...111...2...333.44.5555.6666.777.888899");
-        let compact_disk = super::compact_disk(&disk);
+        let compact_disk = super::compact_disk(&file_map);
         let compact_disk_str = super::disk2string(&compact_disk);
         println!("{:?}", compact_disk_str);
         assert_eq!(
             compact_disk_str,
-            "0099811188827773336446555566.............."
+            "00992111777.44.333....5555.6666.....8888.."
         );
         let checksum = super::checksum(&compact_disk);
         println!("{checksum}");
-        assert_eq!(checksum, 1928);
+        assert_eq!(checksum, 2858);
     }
 }

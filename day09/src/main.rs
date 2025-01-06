@@ -9,6 +9,7 @@ const TESTINPUT: &str = "2333133121414131402";
 
 mod compact;
 mod compact2;
+mod vector_linked_list;
 
 fn main() {
     let disk = timer::time(|| compact::parse_input(INPUT), "parse_input");
