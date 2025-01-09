@@ -98,20 +98,6 @@ pub struct Grid<T: Clone + Default + PartialEq> {
     pub height: usize,
 }
 
-impl<T: Clone + Default + PartialEq> Index<Point> for Grid<T> {
-    type Output = T;
-
-    fn index(&self, point: Point) -> &Self::Output {
-        self.get(point)
-    }
-}
-
-impl<T: Clone + Default + PartialEq> IndexMut<Point> for Grid<T> {
-    fn index_mut(&mut self, point: Point) -> &mut Self::Output {
-        self.get_mut(point)
-    }
-}
-
 impl<T: Clone + Default + PartialEq> Grid<T> {
     pub fn empty_with_capacity(width: usize, height: usize) -> Self {
         Self {
@@ -326,6 +312,7 @@ impl<'a, T: Clone + Default + PartialEq> IntoIterator for &'a Grid<T> {
     }
 }
 
+// Iterator implementations
 pub struct OrthogonalNeighbors<'a, T: Clone + Default + PartialEq> {
     grid: &'a Grid<T>,
     center: Point,
@@ -349,7 +336,7 @@ impl<'a, T: Clone + Default + PartialEq> Iterator for OrthogonalNeighbors<'a, T>
             self.current_direction += 1;
 
             if let Some(p) = self.grid.add_vector(self.center, Vector::new(dx, dy)) {
-                return Some((p, self.grid.get(p)));
+                return Some((p, &self.grid[p]));
             }
         }
         None
@@ -376,7 +363,7 @@ impl<'a, T: Clone + Default + PartialEq> Iterator for DiagonalNeighbors<'a, T> {
             self.current_direction += 1;
 
             if let Some(p) = self.grid.add_vector(self.center, Vector::new(dx, dy)) {
-                return Some((p, self.grid.get(p)));
+                return Some((p, &self.grid[p]));
             }
         }
         None
@@ -398,6 +385,20 @@ impl<T: Clone + Default + PartialEq> Grid<T> {
             center,
             current_direction: 0,
         }
+    }
+}
+
+impl<T: Clone + Default + PartialEq> Index<Point> for Grid<T> {
+    type Output = T;
+
+    fn index(&self, point: Point) -> &Self::Output {
+        self.get(point)
+    }
+}
+
+impl<T: Clone + Default + PartialEq> IndexMut<Point> for Grid<T> {
+    fn index_mut(&mut self, point: Point) -> &mut Self::Output {
+        self.get_mut(point)
     }
 }
 
@@ -699,5 +700,117 @@ mod tests {
     fn test_grid_index_out_of_bounds() {
         let grid = Grid::new(2, 2, 0u8);
         let _ = grid[Point::new(2, 1)];
+    }
+
+    #[test]
+    fn test_basic_neighbors() {
+        let mut grid = Grid::new(3, 3, 0u8);
+        let center = Point::new(1, 1);
+        grid[center] = 1;
+
+        let orthogonal_count = grid.orthogonal_neighbors(center).count();
+        assert_eq!(orthogonal_count, 4);
+
+        let all_count = grid.all_neighbors(center).count();
+        assert_eq!(all_count, 8);
+
+        let corner = Point::new(0, 0);
+        assert_eq!(grid.orthogonal_neighbors(corner).count(), 2);
+        assert_eq!(grid.all_neighbors(corner).count(), 3);
+    }
+
+    #[test]
+    fn test_neighbor_borrow() {
+        let mut grid = Grid::new(3, 3, 0u8);
+        let center = Point::new(1, 1);
+        grid[center] = 5;
+
+        // First collect the values while borrowing immutably
+        let neighbor_values: Vec<_> = grid.orthogonal_neighbors(center).map(|(_, &v)| v).collect();
+
+        // Now we can borrow mutably
+        grid[Point::new(0, 0)] = 1;
+
+        assert_eq!(neighbor_values.len(), 4);
+    }
+
+    #[test]
+    fn test_multiple_iterators() {
+        let grid = Grid::new(3, 3, 0u8);
+        let center = Point::new(1, 1);
+
+        // Multiple iterator types on same point
+        let ortho = grid.orthogonal_neighbors(center);
+        let diag = grid.all_neighbors(center);
+        assert_eq!(ortho.count(), 4);
+        assert_eq!(diag.count(), 8);
+
+        // Same iterator type on different points
+        let iter1 = grid.orthogonal_neighbors(Point::new(0, 0));
+        let iter2 = grid.orthogonal_neighbors(Point::new(2, 2));
+        assert_eq!(iter1.count(), 2);
+        assert_eq!(iter2.count(), 2);
+    }
+
+    #[test]
+    fn test_nested_iteration() {
+        let grid = Grid::new(3, 3, 0u8);
+
+        // For each point, look at its neighbors
+        for (point, _) in &grid {
+            // Can create iterator inside loop
+            let neighbors: Vec<_> = grid.orthogonal_neighbors(point).collect();
+
+            // Can create another iterator over same point
+            let diagonal_count = grid.all_neighbors(point).count();
+
+            assert!(diagonal_count >= neighbors.len());
+        }
+    }
+
+    #[test]
+    fn test_iterator_independence() {
+        let grid = Grid::new(3, 3, 0u8);
+        let center = Point::new(1, 1);
+
+        let mut iter1 = grid.orthogonal_neighbors(center);
+        let mut iter2 = grid.orthogonal_neighbors(center);
+
+        // Advance iterators differently
+        let first1 = iter1.next();
+        let first2 = iter2.next();
+
+        // Should get same first element
+        assert_eq!(first1.map(|(p, _)| p), first2.map(|(p, _)| p));
+
+        iter1.next(); // Advance iter1 again
+
+        // iter2 should still have all remaining elements
+        assert_eq!(iter2.count(), 3);
+    }
+
+    #[test]
+    fn test_modification_during_iteration() {
+        let mut grid = Grid::new(3, 3, 0u8);
+        let center = Point::new(1, 1);
+
+        // Collect points first
+        let points: Vec<_> = grid.orthogonal_neighbors(center).map(|(p, _)| p).collect();
+
+        // Then modify during iteration
+        for point in points {
+            grid[point] = 1;
+
+            // Can still create new iterators
+            let _neighbors = grid.orthogonal_neighbors(point);
+        }
+
+        // Verify modifications
+        assert_eq!(
+            grid.orthogonal_neighbors(center)
+                .filter(|(_, &v)| v == 1)
+                .count(),
+            4
+        );
     }
 }
