@@ -22,12 +22,17 @@ mod grid;
 mod restroom;
 
 fn main() {
-    let mut robots = timer::time(|| restroom::parse_input(INPUT), "Parsing input");
+    let mut restroom = timer::time(|| restroom::Restroom::new(INPUT), "Parsing input");
     let safety_factor = timer::time(
-        || restroom::safety_factor(&mut robots),
+        || restroom.safety_factor_at_time(100),
         "Calculating safety factor",
     );
 
-    robots.print_duration();
+    let min_safety_factor_time = timer::time(
+        || restroom.print_at_minimum_safety_factor(10000),
+        "Finding minimum safety factor",
+    );
+    restroom.print_duration();
     safety_factor.print_all();
+    min_safety_factor_time.print_all();
 }
