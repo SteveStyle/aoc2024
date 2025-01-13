@@ -49,7 +49,7 @@ impl Lanternfish {
         if let (Some(grid), Some(steps)) = (split.next(), split.next()) {
             let grid = grid.trim();
             let grid: Grid<u8> = grid.into();
-            let steps = steps.chars().filter_map(Direction::from_char).collect();
+            let steps = steps.chars().filter_map(Direction::try_from_char).collect();
             let robot = grid.find(b'@').unwrap();
             Self {
                 grid,

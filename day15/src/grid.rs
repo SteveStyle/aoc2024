@@ -1,4 +1,7 @@
-use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign, Rem, RemAssign};
+use std::{
+    io::BufRead,
+    ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign, Rem, RemAssign},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector {
@@ -281,6 +284,27 @@ impl From<&str> for Grid<u8> {
     }
 }
 
+impl From<&[u8]> for Grid<u8> {
+    fn from(data: &[u8]) -> Self {
+        let mut split = data.split(|&c| c == b'\n');
+        let row = split.next().unwrap();
+        let width = row.len();
+        let mut height = 1;
+        let mut data = Vec::with_capacity(data.len());
+        data.extend(row);
+        while let Some(row) = split.next() {
+            assert_eq!(row.len(), width);
+            data.extend(row);
+            height += 1;
+        }
+        Self {
+            data,
+            width,
+            height,
+        }
+    }
+}
+
 impl Grid<u8> {
     pub fn print(&self) {
         for y in 0..self.height {
@@ -466,13 +490,25 @@ pub enum Direction {
 }
 
 impl Direction {
-    pub fn from_char(c: char) -> Option<Self> {
+    pub fn try_from_char(c: char) -> Option<Self> {
         match c {
             '>' => Some(Direction::Right),
             'v' => Some(Direction::Down),
             '<' => Some(Direction::Left),
             '^' => Some(Direction::Up),
             _ => None,
+        }
+    }
+}
+
+impl From<char> for Direction {
+    fn from(c: char) -> Self {
+        match c {
+            '>' => Direction::Right,
+            'v' => Direction::Down,
+            '<' => Direction::Left,
+            '^' => Direction::Up,
+            _ => Direction::Wait,
         }
     }
 }
