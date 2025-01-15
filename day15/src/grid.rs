@@ -292,7 +292,7 @@ impl From<&[u8]> for Grid<u8> {
         let mut height = 1;
         let mut data = Vec::with_capacity(data.len());
         data.extend(row);
-        while let Some(row) = split.next() {
+        for row in split {
             assert_eq!(row.len(), width);
             data.extend(row);
             height += 1;

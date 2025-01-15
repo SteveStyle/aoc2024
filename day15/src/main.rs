@@ -34,4 +34,16 @@ fn main() {
 
     lanternfish.print_duration();
     gps_sum.print_all();
+
+    let mut lanternfish = timer::time(|| lanternfish2::Lanternfish::new(INPUT), "Lanternfish::new");
+    let gps_sum = timer::time(
+        || {
+            lanternfish.move_robot_fully();
+            lanternfish.gps_sum()
+        },
+        "Lanternfish::gps_sum",
+    );
+
+    lanternfish.print_duration();
+    gps_sum.print_all();
 }

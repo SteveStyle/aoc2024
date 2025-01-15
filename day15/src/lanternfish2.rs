@@ -1,46 +1,3 @@
-const TESTINPUT: &str = "########
-#..O.O.#
-##@.O..#
-#...O..#
-#.#.O..#
-#...O..#
-#......#
-########
-
-<^^>>>vv<v>>v<<";
-
-const TESTINPUT2: &str = "##########
-#..O..O.O#
-#......O.#
-#.OO..O.O#
-#..O@..O.#
-#O#..O...#
-#O..O..O.#
-#.OO.O.OO#
-#....O...#
-##########
-
-<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
-vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
-><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
-<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
-^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
-^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
->^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
-<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
-^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
-v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^";
-
-const TESTINPUT3: &str = "#######
-#...#.#
-#.....#
-#..OO@#
-#..O..#
-#.....#
-#######
-
-<vv<<^^<<^^";
-
 use core::panic;
 
 use super::grid::{Direction, Grid, Point, Vector};
@@ -122,46 +79,45 @@ impl Lanternfish {
         direction: Direction,
     ) -> bool {
         assert!(direction == Direction::Up || direction == Direction::Down);
-        if this_row_points_to_move.len() == 0 {
+        if this_row_points_to_move.is_empty() {
             return true;
         }
         let next_row_points_to_move =
             this_row_points_to_move
                 .iter()
                 .try_fold(Vec::new(), |mut acc, &p| {
-                    match self.grid[p] {
-                        b'.' => {}
-                        b'#' => {
-                            return Err(());
-                        }
+                    if let Some(next_p) = (p + Vector::from(direction)) {
+                        match self.grid[next_p] {
+                            b'.' => {}
+                            b'#' => {
+                                return Err(());
+                            }
 
-                        b'[' => {
-                            if let Some(new_p) = (p + Vector::from(direction)) {
-                                acc.push(new_p);
+                            b'[' => {
+                                acc.push(next_p);
+
+                                if let Some(new_p) =
+                                    (p + (Vector::from(direction) + Vector::from(Direction::Right)))
+                                {
+                                    acc.push(new_p);
+                                }
                             }
-                            if let Some(new_p) =
-                                (p + (Vector::from(direction) + Vector::from(Direction::Right)))
-                            {
-                                acc.push(new_p);
+                            b']' => {
+                                acc.push(next_p);
+
+                                if let Some(new_p) =
+                                    (p + (Vector::from(direction) + Vector::from(Direction::Left)))
+                                {
+                                    acc.push(new_p);
+                                }
                             }
-                        }
-                        b']' => {
-                            if let Some(new_p) = (p + Vector::from(direction)) {
-                                acc.push(new_p);
-                            }
-                            if let Some(new_p) =
-                                (p + (Vector::from(direction) + Vector::from(Direction::Left)))
-                            {
-                                acc.push(new_p);
-                            }
-                        }
-                        b'@' => {
-                            if let Some(new_p) = (p + Vector::from(direction)) {
-                                acc.push(new_p);
-                            }
-                        }
-                        _ => panic!("unkown cell value"),
-                    };
+                            /*                             b'@' => {
+                                                           acc.push(next_p);
+                                                       }
+                            */
+                            _ => panic!("unkown cell value"),
+                        };
+                    }
                     Ok(acc)
                 });
 
@@ -169,6 +125,9 @@ impl Lanternfish {
             if self.move_cell_vertical(next_row_points_to_move, direction) {
                 this_row_points_to_move.iter().for_each(|&p| {
                     self.grid[(p + Vector::from(direction)).unwrap()] = self.grid[p];
+                });
+                this_row_points_to_move.iter().for_each(|&p| {
+                    self.grid[p] = b'.';
                 });
                 true
             } else {
@@ -219,6 +178,49 @@ impl Lanternfish {
 mod tests {
     use super::*;
 
+    const TESTINPUT: &str = "########
+#..O.O.#
+##@.O..#
+#...O..#
+#.#.O..#
+#...O..#
+#......#
+########
+
+<^^>>>vv<v>>v<<";
+
+    const TESTINPUT2: &str = "##########
+#..O..O.O#
+#......O.#
+#.OO..O.O#
+#..O@..O.#
+#O#..O...#
+#O..O..O.#
+#.OO.O.OO#
+#....O...#
+##########
+
+<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
+vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
+><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
+<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
+^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
+^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
+>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
+<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
+^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
+v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^";
+
+    const TESTINPUT3: &str = "#######
+#...#.#
+#.....#
+#..OO@#
+#..O..#
+#.....#
+#######
+
+<vv<<^^<<^^";
+
     #[test]
     fn test_lanternfish_new() {
         let lanternfish = Lanternfish::new(TESTINPUT3);
@@ -241,18 +243,12 @@ mod tests {
         lanternfish.grid.print();
         assert_eq!(lanternfish.robot, Point::new(9, 5));
         assert_eq!(lanternfish.grid[lanternfish.robot], b'@');
+        while lanternfish.move_robot() {
+            lanternfish.grid.print();
+        }
+        assert_eq!(lanternfish.robot, Point { x: 5, y: 2 })
     }
 
-    #[test]
-    fn test_lanternfish_move_robot_fully3() {
-        let mut lanternfish = Lanternfish::new(TESTINPUT3);
-        lanternfish.move_robot_fully();
-        assert_eq!(lanternfish.grid[lanternfish.robot], b'@');
-        lanternfish.grid.print();
-        assert_eq!(lanternfish.robot, Point::new(5, 2));
-
-        //assert_eq!(lanternfish.gps_sum(), 9021);
-    }
     #[test]
     fn test_lanternfish_move_robot_fully2() {
         let mut lanternfish = Lanternfish::new(TESTINPUT2);
