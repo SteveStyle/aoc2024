@@ -48,8 +48,8 @@ impl Lanternfish {
 
     pub fn move_cell_horizontal(&mut self, this_cell_point: Point, direction: Direction) -> bool {
         assert!(direction == Direction::Left || direction == Direction::Right);
-        /// move cell moves the value of the this cell into the next cell.  If the next cell is occupied it requests that that cell is also moved.  
-        /// If the next cell is wall it returns false.
+        // move cell moves the value of the this cell into the next cell.  If the next cell is occupied it requests that that cell is also moved.
+        // If the next cell is wall it returns false.
         let this_cell_value = self.grid[this_cell_point];
         let next_cell_point = (this_cell_point + Vector::from(direction)).unwrap();
         //let next_cell_value = self.grid[next_cell_point];
@@ -86,7 +86,7 @@ impl Lanternfish {
             this_row_points_to_move
                 .iter()
                 .try_fold(Vec::new(), |mut acc, &p| {
-                    if let Some(next_p) = (p + Vector::from(direction)) {
+                    if let Some(next_p) = p + Vector::from(direction) {
                         match self.grid[next_p] {
                             b'.' => {}
                             b'#' => {
@@ -97,7 +97,7 @@ impl Lanternfish {
                                 acc.push(next_p);
 
                                 if let Some(new_p) =
-                                    (p + (Vector::from(direction) + Vector::from(Direction::Right)))
+                                    p + (Vector::from(direction) + Vector::from(Direction::Right))
                                 {
                                     acc.push(new_p);
                                 }
@@ -106,7 +106,7 @@ impl Lanternfish {
                                 acc.push(next_p);
 
                                 if let Some(new_p) =
-                                    (p + (Vector::from(direction) + Vector::from(Direction::Left)))
+                                    p + (Vector::from(direction) + Vector::from(Direction::Left))
                                 {
                                     acc.push(new_p);
                                 }
@@ -175,6 +175,7 @@ impl Lanternfish {
 }
 
 #[cfg(test)]
+#[allow(unused)]
 mod tests {
     use super::*;
 
@@ -261,11 +262,11 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^";
     #[test]
     fn test_first_n_steps() {
         let mut lanternfish = Lanternfish::new(TESTINPUT2);
-        for i in 0..20 {
+        for _ in 0..20 {
             lanternfish.move_robot();
         }
         lanternfish.grid.print();
-        for i in 0..15 {
+        for _ in 0..15 {
             lanternfish.move_robot();
             println!(
                 "after step : {}, direction {:?}",

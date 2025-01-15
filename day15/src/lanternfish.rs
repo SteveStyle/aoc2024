@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 const TESTINPUT: &str = "########
 #..O.O.#
 ##@.O..#
@@ -9,6 +10,7 @@ const TESTINPUT: &str = "########
 
 <^^>>>vv<v>>v<<";
 
+#[allow(dead_code)]
 const TESTINPUT2: &str = "##########
 #..O..O.O#
 #......O.#

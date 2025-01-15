@@ -1,4 +1,4 @@
-#![allow(dead_code, unused)]
+//#![allow(dead_code, unused)]
 
 use stephen_morris_utils::timer;
 

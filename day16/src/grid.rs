@@ -1,4 +1,7 @@
-use std::ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign, Rem, RemAssign};
+use std::{
+    io::BufRead,
+    ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign, Rem, RemAssign},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector {
@@ -487,6 +490,24 @@ pub enum Direction {
 }
 
 impl Direction {
+    pub fn left(&self) -> Self {
+        match self {
+            Direction::Right => Direction::Up,
+            Direction::Down => Direction::Right,
+            Direction::Left => Direction::Down,
+            Direction::Up => Direction::Left,
+            Direction::Wait => Direction::Wait,
+        }
+    }
+    pub fn right(&self) -> Self {
+        match self {
+            Direction::Right => Direction::Down,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+            Direction::Up => Direction::Right,
+            Direction::Wait => Direction::Wait,
+        }
+    }
     pub fn try_from_char(c: char) -> Option<Self> {
         match c {
             '>' => Some(Direction::Right),
