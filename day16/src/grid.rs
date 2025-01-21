@@ -482,29 +482,44 @@ impl<T: Clone + Default + PartialEq> IndexMut<Point> for Grid<T> {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Direction {
+    Up,
     Right,
     Down,
     Left,
-    Up,
     Wait,
 }
+
+pub const UP: usize = Direction::Up as usize;
+pub const RIGHT: usize = Direction::Right as usize;
+pub const DOWN: usize = Direction::Down as usize;
+pub const LEFT: usize = Direction::Left as usize;
+pub const WAIT: usize = Direction::Wait as usize;
 
 impl Direction {
     pub fn left(&self) -> Self {
         match self {
+            Direction::Up => Direction::Left,
             Direction::Right => Direction::Up,
             Direction::Down => Direction::Right,
             Direction::Left => Direction::Down,
-            Direction::Up => Direction::Left,
             Direction::Wait => Direction::Wait,
         }
     }
     pub fn right(&self) -> Self {
         match self {
+            Direction::Up => Direction::Right,
             Direction::Right => Direction::Down,
             Direction::Down => Direction::Left,
             Direction::Left => Direction::Up,
-            Direction::Up => Direction::Right,
+            Direction::Wait => Direction::Wait,
+        }
+    }
+    pub fn reverse(&self) -> Self {
+        match self {
+            Direction::Up => Direction::Down,
+            Direction::Right => Direction::Left,
+            Direction::Down => Direction::Up,
+            Direction::Left => Direction::Right,
             Direction::Wait => Direction::Wait,
         }
     }
@@ -941,5 +956,15 @@ mod tests {
                 .count(),
             4
         );
+    }
+
+    #[test]
+    fn test_direction_arithmatic() {
+        println!("Up as integer {}", Direction::Up as u8);
+        println!("Right as integer {}", Direction::Right as u8);
+        println!("Down as integer {}", Direction::Down as u8);
+        println!("Left as integer {}", Direction::Left as u8);
+        println!("Wait as integer {}", Direction::Wait as u8);
+        println!("Up + 1 as integer {}", (Direction::Up as u8) + 1);
     }
 }

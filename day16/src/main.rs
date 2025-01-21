@@ -44,8 +44,8 @@ mod maze;
 
 fn main() {
     let mut maze = timer::time(|| maze::Maze::new(INPUT), "Maze::new");
-    let res = timer::time(|| maze.minimum_score(), "Maze::minimum_score");
-    let best_paths = timer::time(|| maze.find_path_cells(), "find_best_paths");
+    let res = timer::time(|| maze.find_best_score(), "Maze::minimum_score");
+    let best_paths = timer::time(|| maze.cells_on_optimal_path(), "find_best_paths");
 
     maze.print_duration();
     res.print_all();
