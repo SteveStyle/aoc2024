@@ -21,6 +21,7 @@ enum FindPathStatus {
     #[default]
     Ready,
     FindPathNeeded,
+    EqualPath(Option<Count>),
 }
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 struct CellDirectionPath {
@@ -44,23 +45,28 @@ impl CellDirectionPath {
         if new_from_start >= best_total {
             return Err(PathError::TotalExceeded);
         }
-        if let Some(current_from_start) = self.best_from_start {
-            if current_from_start < new_from_start {
-                new_from_start = current_from_start;
-            } else {
+        match self.best_from_start {
+            Some(current_best_from_start) => match current_best_from_start.cmp(&new_from_start) {
+                std::cmp::Ordering::Less => {
+                    self.status = FindPathStatus::Ready;
+                }
+                std::cmp::Ordering::Equal => {
+                    self.status = FindPathStatus::EqualPath(self.best_to_end);
+                }
+                std::cmp::Ordering::Greater => {
+                    self.best_from_start = Some(new_from_start);
+                    self.status = FindPathStatus::FindPathNeeded;
+                }
+            },
+            None => {
                 self.best_from_start = Some(new_from_start);
+                self.status = FindPathStatus::FindPathNeeded;
             }
-        } else {
-            self.best_from_start = Some(new_from_start);
         }
-        self.status = FindPathStatus::FindPathNeeded;
         Ok(())
     }
     fn on_loop(&self) -> bool {
-        match self.status {
-            FindPathStatus::Ready => false,
-            FindPathStatus::FindPathNeeded => true,
-        }
+        self.status != FindPathStatus::Ready
     }
     fn try_get_total(&self) -> Option<Count> {
         Some(self.best_from_start? + self.best_to_end?)
@@ -138,29 +144,18 @@ impl Maze {
             counts: &mut Grid<CellDirectionPaths>,
             current_cell: Point,
             current_direction: Direction,
-            from_start: Count, // the score for reaching the this cell, prior to turning
+            from_start: Count,
             mut best_total: Count,
         ) -> Result<Count, PathError> {
-            // find_path() starts from a particular cell, pointing in a particular direction, along with the score required to reach this position.
-            // It considers each of the three possible turns (left, right, straight on) followed by a move forward, and then calls itself recursively.
-            // It returns the shortest score it finds to reach the End square from that starting position.
-            //
-            // Each cell/position stores the lowest score for reaching that cell/position from the startion position, and the lowest score for reaching the end from that position.
-            //
-            // best_total is the best total score found for the whole path from start to end.  It is only passed around via this function and is not stored in the cells.
-
-            if from_start > best_total {
-                return Err(PathError::TotalExceeded);
-            }
             if maze[current_cell] == b'E' {
                 return Ok(0);
+            }
+            if from_start >= best_total {
+                return Err(PathError::TotalExceeded);
             }
             if counts[current_cell].on_loop() {
                 return Err(PathError::LoopDetected);
             }
-            // Add the score for turning
-            // So new_from_start represents the total score for reaching this position in this cell and turning in one of the three directions.
-            // It does not include the score for moving into the next cell.
             let directions = [
                 (current_direction, 0),
                 (current_direction.left(), 1000),
@@ -187,48 +182,57 @@ impl Maze {
             for (new_direction, turn) in directions {
                 if let Some(next_cell) = maze.add_vector(current_cell, Vector::from(new_direction))
                 {
-                    if counts[current_cell][new_direction as usize].status
-                        == FindPathStatus::FindPathNeeded
-                    {
-                        if let Ok(new_to_end) = find_path(
-                            maze,
-                            counts,
-                            next_cell,
-                            new_direction,
-                            from_start + turn + 1, // add the score for moving to the next cell, ready to turn
-                            best_total,
-                        ) {
-                            // update the best to_end for the cell/direction
-                            // update the best_total
-                            counts[current_cell][new_direction as usize].path_found(new_to_end + 1); // allow for the turn and step to the next cell
-                            best_total = best_total.min(from_start + turn + 1 + new_to_end);
-                            best_to_end = best_to_end.min(turn + 1 + new_to_end);
-                            path_found = true;
+                    match counts[current_cell][new_direction as usize].status {
+                        FindPathStatus::FindPathNeeded | FindPathStatus::EqualPath(None) => {
+                            if let Ok(new_to_end) = find_path(
+                                maze,
+                                counts,
+                                next_cell,
+                                new_direction,
+                                from_start + turn + 1, // add the score for moving to the next cell, ready to turn
+                                best_total,
+                            ) {
+                                // update the best to_end for the cell/direction
+                                // update the best_total
+                                counts[current_cell][new_direction as usize]
+                                    .path_found(new_to_end + 1); // allow for the turn and step to the next cell
+                                best_total = best_total.min(from_start + turn + 1 + new_to_end);
+                                best_to_end = best_to_end.min(turn + 1 + new_to_end);
+                                path_found = true;
+                            }
+                            counts[current_cell][new_direction as usize].status =
+                                FindPathStatus::Ready;
                         }
+                        // we can assume that if the current path is optimal then any previous path with the same from_start to this cell/direction is also optimal.
+                        // Pf, suppose route A and route B pass through the same cell/direction with the same score (the same from_start) and that A is optimal but B is not.
+                        // It must be that the remaining path for A passes through the previous path for B, since it is not available to B.  But then B could be improved and
+                        // B was not optimal.  So the assumption is correct.
+                        FindPathStatus::EqualPath(Some(new_to_end)) => {
+                            // best_total = best_total.min(from_start + turn + 1 + new_to_end);
+                            best_to_end = best_to_end.min(turn + new_to_end);
+                            path_found = true;
+                            counts[current_cell][new_direction as usize].status =
+                                FindPathStatus::Ready;
+                        }
+                        FindPathStatus::Ready => {}
                     }
-                    counts[current_cell][new_direction as usize].status = FindPathStatus::Ready;
                 }
             }
-
             if path_found {
                 Ok(best_to_end)
             } else {
                 Err(PathError::NoValidPath)
             }
         }
-        // self.counts[self.start][RIGHT].set_from_start(0);
-        if let Ok(best_score) = find_path(
+        find_path(
             &self.maze,
             &mut self.counts,
             self.start,
-            Direction::Right,
+            crate::grid::Direction::East,
             0,
             Count::MAX,
-        ) {
-            best_score
-        } else {
-            panic!("could not solve maze")
-        }
+        )
+        .unwrap()
     }
 
     pub fn cells_on_optimal_path(&mut self) -> Count {

@@ -28,10 +28,10 @@ impl Vector {
 
     pub fn from_direction(dir: Direction) -> Self {
         match dir {
-            Direction::Right => Vector::new(1, 0),
-            Direction::Down => Vector::new(0, 1),
-            Direction::Left => Vector::new(-1, 0),
-            Direction::Up => Vector::new(0, -1),
+            Direction::East => Vector::new(1, 0),
+            Direction::South => Vector::new(0, 1),
+            Direction::West => Vector::new(-1, 0),
+            Direction::North => Vector::new(0, -1),
             Direction::Wait => Vector::new(0, 0),
         }
     }
@@ -221,10 +221,10 @@ impl<T: Clone + Default + PartialEq> Grid<T> {
 
     pub fn test_bound_direction(&self, point: Point, direction: Direction) -> bool {
         match direction {
-            Direction::Right => point.x < self.width - 1,
-            Direction::Down => point.y < self.height - 1,
-            Direction::Left => point.x > 0,
-            Direction::Up => point.y > 0,
+            Direction::East => point.x < self.width - 1,
+            Direction::South => point.y < self.height - 1,
+            Direction::West => point.x > 0,
+            Direction::North => point.y > 0,
             Direction::Wait => true,
         }
     }
@@ -482,53 +482,53 @@ impl<T: Clone + Default + PartialEq> IndexMut<Point> for Grid<T> {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Direction {
-    Up,
-    Right,
-    Down,
-    Left,
+    North,
+    East,
+    South,
+    West,
     Wait,
 }
 
-pub const UP: usize = Direction::Up as usize;
-pub const RIGHT: usize = Direction::Right as usize;
-pub const DOWN: usize = Direction::Down as usize;
-pub const LEFT: usize = Direction::Left as usize;
+pub const UP: usize = Direction::North as usize;
+pub const RIGHT: usize = Direction::East as usize;
+pub const DOWN: usize = Direction::South as usize;
+pub const LEFT: usize = Direction::West as usize;
 pub const WAIT: usize = Direction::Wait as usize;
 
 impl Direction {
     pub fn left(&self) -> Self {
         match self {
-            Direction::Up => Direction::Left,
-            Direction::Right => Direction::Up,
-            Direction::Down => Direction::Right,
-            Direction::Left => Direction::Down,
+            Direction::North => Direction::West,
+            Direction::East => Direction::North,
+            Direction::South => Direction::East,
+            Direction::West => Direction::South,
             Direction::Wait => Direction::Wait,
         }
     }
     pub fn right(&self) -> Self {
         match self {
-            Direction::Up => Direction::Right,
-            Direction::Right => Direction::Down,
-            Direction::Down => Direction::Left,
-            Direction::Left => Direction::Up,
+            Direction::North => Direction::East,
+            Direction::East => Direction::South,
+            Direction::South => Direction::West,
+            Direction::West => Direction::North,
             Direction::Wait => Direction::Wait,
         }
     }
     pub fn reverse(&self) -> Self {
         match self {
-            Direction::Up => Direction::Down,
-            Direction::Right => Direction::Left,
-            Direction::Down => Direction::Up,
-            Direction::Left => Direction::Right,
+            Direction::North => Direction::South,
+            Direction::East => Direction::West,
+            Direction::South => Direction::North,
+            Direction::West => Direction::East,
             Direction::Wait => Direction::Wait,
         }
     }
     pub fn try_from_char(c: char) -> Option<Self> {
         match c {
-            '>' => Some(Direction::Right),
-            'v' => Some(Direction::Down),
-            '<' => Some(Direction::Left),
-            '^' => Some(Direction::Up),
+            '>' => Some(Direction::East),
+            'v' => Some(Direction::South),
+            '<' => Some(Direction::West),
+            '^' => Some(Direction::North),
             _ => None,
         }
     }
@@ -537,10 +537,10 @@ impl Direction {
 impl From<char> for Direction {
     fn from(c: char) -> Self {
         match c {
-            '>' => Direction::Right,
-            'v' => Direction::Down,
-            '<' => Direction::Left,
-            '^' => Direction::Up,
+            '>' => Direction::East,
+            'v' => Direction::South,
+            '<' => Direction::West,
+            '^' => Direction::North,
             _ => Direction::Wait,
         }
     }
@@ -644,10 +644,10 @@ mod tests {
     #[test]
     fn test_all_directions() {
         let directions = [
-            (Direction::Right, (1, 0)),
-            (Direction::Down, (0, 1)),
-            (Direction::Left, (-1, 0)),
-            (Direction::Up, (0, -1)),
+            (Direction::East, (1, 0)),
+            (Direction::South, (0, 1)),
+            (Direction::West, (-1, 0)),
+            (Direction::North, (0, -1)),
             (Direction::Wait, (0, 0)),
         ];
 
@@ -690,10 +690,10 @@ mod tests {
         let mut grid = Grid::new(3, 3, 0u8);
         let center = Point::new(1, 1);
         let directions = [
-            Direction::Up,
-            Direction::Right,
-            Direction::Down,
-            Direction::Left,
+            Direction::North,
+            Direction::East,
+            Direction::South,
+            Direction::West,
         ];
 
         // Set center and mark neighbors
@@ -738,10 +738,10 @@ mod tests {
         // Find value and transform surrounding area
         if let Some(center) = grid.find(5) {
             let directions = [
-                Direction::Up,
-                Direction::Right,
-                Direction::Down,
-                Direction::Left,
+                Direction::North,
+                Direction::East,
+                Direction::South,
+                Direction::West,
             ];
             for dir in directions {
                 if let Some(neighbor) = grid.add_vector(center, Vector::from_direction(dir)) {
@@ -960,11 +960,11 @@ mod tests {
 
     #[test]
     fn test_direction_arithmatic() {
-        println!("Up as integer {}", Direction::Up as u8);
-        println!("Right as integer {}", Direction::Right as u8);
-        println!("Down as integer {}", Direction::Down as u8);
-        println!("Left as integer {}", Direction::Left as u8);
+        println!("Up as integer {}", Direction::North as u8);
+        println!("Right as integer {}", Direction::East as u8);
+        println!("Down as integer {}", Direction::South as u8);
+        println!("Left as integer {}", Direction::West as u8);
         println!("Wait as integer {}", Direction::Wait as u8);
-        println!("Up + 1 as integer {}", (Direction::Up as u8) + 1);
+        println!("Up + 1 as integer {}", (Direction::North as u8) + 1);
     }
 }
