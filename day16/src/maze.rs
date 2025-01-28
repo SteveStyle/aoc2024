@@ -5,7 +5,7 @@ use std::{
     thread::current,
 };
 
-use crate::grid::{Direction, Grid, Point, Vector, DOWN, LEFT, RIGHT, UP};
+use crate::grid::{Direction, Grid, Point, Vector, EAST, NORTH, SOUTH, WEST};
 
 type Count = u32;
 
@@ -81,6 +81,27 @@ impl CellDirectionPath {
     }
 }
 
+impl Display for CellDirectionPaths {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, cdp) in self.paths.iter().enumerate() {
+            writeln!(
+                f,
+                "{:} {:6} {:6}",
+                char::from(Direction::from(i)),
+                match cdp.best_from_start {
+                    Some(count) => count.to_string(),
+                    None => "None".to_string(),
+                },
+                match cdp.best_to_end {
+                    Some(count) => count.to_string(),
+                    None => "None".to_string(),
+                }
+            )?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 struct CellDirectionPaths {
     paths: [CellDirectionPath; 4],
@@ -109,6 +130,17 @@ impl CellDirectionPaths {
             .iter()
             .filter_map(CellDirectionPath::try_get_total)
             .min()
+    }
+    fn print(&self) {
+        for (i, cdp) in self.paths.iter().enumerate() {
+            println!(
+                "{:?} {:?} {:?} {:?}",
+                char::from(Direction::from(i)),
+                cdp.status,
+                cdp.best_from_start,
+                cdp.best_to_end
+            );
+        }
     }
 }
 
@@ -246,6 +278,8 @@ impl Maze {
                         optimal_cells[point] = b'O';
                         count += 1;
                     }
+                } else {
+                    optimal_cells[point] = b'X';
                 }
             }
         }

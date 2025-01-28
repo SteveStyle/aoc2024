@@ -1,4 +1,5 @@
 use std::{
+    fmt::{self, Display, Formatter, Result},
     io::BufRead,
     ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign, Rem, RemAssign},
 };
@@ -489,10 +490,10 @@ pub enum Direction {
     Wait,
 }
 
-pub const UP: usize = Direction::North as usize;
-pub const RIGHT: usize = Direction::East as usize;
-pub const DOWN: usize = Direction::South as usize;
-pub const LEFT: usize = Direction::West as usize;
+pub const NORTH: usize = Direction::North as usize;
+pub const EAST: usize = Direction::East as usize;
+pub const SOUTH: usize = Direction::South as usize;
+pub const WEST: usize = Direction::West as usize;
 pub const WAIT: usize = Direction::Wait as usize;
 
 impl Direction {
@@ -542,6 +543,37 @@ impl From<char> for Direction {
             '<' => Direction::West,
             '^' => Direction::North,
             _ => Direction::Wait,
+        }
+    }
+}
+
+impl From<Direction> for char {
+    fn from(d: Direction) -> Self {
+        match d {
+            Direction::East => '>',
+            Direction::South => 'v',
+            Direction::West => '<',
+            Direction::North => '^',
+            Direction::Wait => '.',
+        }
+    }
+}
+
+impl Display for Direction {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", char::from(*self))
+    }
+}
+
+impl From<usize> for Direction {
+    fn from(value: usize) -> Self {
+        match value {
+            NORTH => Direction::North,
+            EAST => Direction::East,
+            SOUTH => Direction::South,
+            WEST => Direction::West,
+            WAIT => Direction::Wait,
+            _ => panic!("Invalid direction value"),
         }
     }
 }
