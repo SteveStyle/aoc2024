@@ -346,7 +346,9 @@ impl Computer {
             }
             None
         }
-        get_next_digit(self, 0, &self.program.instructions.clone()).unwrap()
+        let mut target = self.program.instructions.clone();
+        target.reverse();
+        get_next_digit(self, 0, &mut target).unwrap()
     }
 }
 
@@ -384,5 +386,15 @@ mod tests {
     fn test_find_a() {
         let mut computer = Computer::new(TESTINPUT2);
         println!("{}", computer.find_initial_a2());
+    }
+    #[test]
+    fn test_part2_correct() {
+        let mut computer = Computer::new(TESTINPUT3);
+        let output = computer.execute_program();
+        println!(
+            "output: {:?}, program {:?}",
+            output, computer.program.instructions
+        );
+        assert_eq!(output, computer.program.instructions.iter().join(","));
     }
 }
