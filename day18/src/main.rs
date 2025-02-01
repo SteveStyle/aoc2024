@@ -41,6 +41,10 @@ fn main() {
     memory.print_duration();
     min_path.print_all();
 
+    let min_path2 = time(|| memory.min_path_period2(1024), "min_path_period2");
+
+    min_path2.print_all();
+
     let disconnection_point = time(|| memory.find_disconnection(), "find_disconnection");
 
     disconnection_point.print_all();
@@ -49,6 +53,11 @@ fn main() {
 fn part1(input: &str) -> usize {
     let mut memory = Memory::new(TESTINPUT);
     memory.min_path_period(12)
+}
+
+fn part1_jobs(input: &str) -> usize {
+    let mut memory = Memory::new(TESTINPUT);
+    memory.min_path_period2(12)
 }
 fn part2(input: &str) -> grid::Point {
     let mut memory = Memory::new(TESTINPUT);
@@ -75,6 +84,10 @@ mod tests {
     #[test]
     fn test_part1() {
         assert_eq!(part1(TESTINPUT), 22);
+    }
+    #[test]
+    fn test_part1_jobs() {
+        assert_eq!(part1_jobs(TESTINPUT), 22);
     }
 
     #[test]

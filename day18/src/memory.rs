@@ -1,5 +1,7 @@
 type Generation = usize;
 
+use std::collections::VecDeque;
+
 use stephen_morris_utils::get_numbers;
 
 use crate::{
@@ -79,6 +81,45 @@ impl Memory {
         }
     }
 
+    pub fn min_path_period2(&self, period: Generation) -> Generation {
+        let mut grid = Grid::new_default(WIDTH, HEIGHT);
+        for (point, &corrupt_from) in &self.grid_corrupt_from {
+            if corrupt_from < period {
+                grid[point] = PathStatus::Unreachable;
+            }
+        }
+
+        let mut job_queue: VecDeque<Job> = VecDeque::new();
+        job_queue.push_back(Job::new(self.start_point, 0));
+
+        while let Some(job) = job_queue.pop_front() {
+            if grid[job.point] == PathStatus::Unreachable {
+                continue;
+            }
+            if let PathStatus::ReachableIn(old_generation) = grid[job.point] {
+                if old_generation <= job.generation {
+                    continue;
+                }
+            }
+            grid[job.point] = PathStatus::ReachableIn(job.generation);
+            let v: Vec<Point> = grid
+                .orthogonal_neighbors(job.point)
+                .map(|(p, _)| p)
+                .collect();
+            for next_point in v {
+                if grid[next_point] != PathStatus::Unreachable {
+                    job_queue.push_back(Job::new(next_point, job.generation + 1));
+                }
+            }
+        }
+
+        if let PathStatus::ReachableIn(generation) = grid[self.end_point] {
+            generation
+        } else {
+            unreachable!()
+        }
+    }
+
     fn is_connected_after(&self, period: Generation) -> bool {
         fn set_reachable(grid: &mut Grid<PathStatus>, point: Point, end_point: Point) -> bool {
             if grid[point] != PathStatus::NotKnown {
@@ -114,6 +155,17 @@ impl Memory {
                 end_range = period - 1;
             }
         }
+        println!("{start_range}");
         self.byte_list[start_range]
+    }
+}
+
+struct Job {
+    point: Point,
+    generation: Generation,
+}
+impl Job {
+    fn new(point: Point, generation: Generation) -> Self {
+        Job { point, generation }
     }
 }
