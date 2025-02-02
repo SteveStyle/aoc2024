@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fmt::{Debug, Display, Write},
     ops::{Deref, DerefMut},
 };
@@ -96,17 +97,23 @@ impl Basis {
     fn can_be_made(&self, word: &Word) -> bool {
         Self::can_be_made_from(word, &self.minimal_list)
     }
-    fn count_ways(&self, word: &[u8]) -> usize {
+    fn count_ways(&self, word: &[u8], hm: &mut HashMap<Vec<u8>, usize>) -> usize {
         if word.is_empty() {
             return 1;
         }
-        let mut result = 0;
-        for try_word in &self.source_list {
-            if word.starts_with(try_word) {
-                result += self.count_ways(&word[try_word.len()..]);
+        match hm.get(word) {
+            Some(count) => *count,
+            None => {
+                let mut result = 0;
+                for try_word in &self.source_list {
+                    if word.starts_with(try_word) {
+                        result += self.count_ways(&word[try_word.len()..], hm);
+                    }
+                }
+                hm.insert(word.to_vec(), result);
+                result
             }
         }
-        result
     }
     pub fn build_minimal_list(&mut self) {
         let mut new_list = Vec::new();
@@ -149,9 +156,10 @@ impl TowelWords {
         count
     }
     pub fn count_possible_ways(&self) -> usize {
+        let mut hm = HashMap::new();
         let mut count = 0;
         for word in &self.target_list {
-            count += self.basis.count_ways(word);
+            count += self.basis.count_ways(word, &mut hm);
         }
 
         count
