@@ -13,9 +13,21 @@ const TESTINPUT: &str = "029A
 mod grid;
 mod keypads;
 
-use keypads::Keypad;
+use keypads::{Keypad, Scenario};
 
-fn main() {}
+fn main() {
+    let mut scenario = time(|| Scenario::new(INPUT, 3), "Scenario::new()");
+    let cost = time(|| scenario.cost_for_targets(), "cost");
+
+    scenario.print_duration();
+    cost.print_all();
+
+    let mut scenario = time(|| Scenario::new(INPUT, 26), "Scenario::new()");
+    let cost = time(|| scenario.cost_for_targets(), "cost");
+
+    scenario.print_duration();
+    cost.print_all();
+}
 
 fn part1(input: &str) -> usize {
     0

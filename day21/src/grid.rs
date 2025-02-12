@@ -16,6 +16,12 @@ pub struct Point {
     pub y: usize,
 }
 
+impl Display for Point {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "({},{})", self.x, self.y)
+    }
+}
+
 impl From<Point> for Vector {
     fn from(p: Point) -> Self {
         Vector::new(p.x as isize, p.y as isize)
@@ -34,6 +40,12 @@ impl Vector {
             Direction::West => Vector::new(-1, 0),
             Direction::North => Vector::new(0, -1),
             Direction::Wait => Vector::new(0, 0),
+        }
+    }
+    pub fn abs(&self) -> Self {
+        Vector {
+            x: self.x.abs(),
+            y: self.y.abs(),
         }
     }
 }
