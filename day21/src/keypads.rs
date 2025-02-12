@@ -28,7 +28,7 @@ use std::{
     ops::{Add, AddAssign},
 };
 
-use crate::grid::{Direction, Grid, Point, Vector};
+use crate::grid::{Grid, Point, Vector};
 
 type Cost = isize;
 
@@ -41,7 +41,7 @@ const ROOM_LAYOUT_TEXT: &str = "789\n456\n123\nX0A";
 const REMOTE_LAYOUT_TEXT: &str = "X^A\n<v>";
 #[derive(Debug, Clone)]
 struct KeypadLayout {
-    grid: Grid<u8>,
+    // grid: Grid<u8>,
     map: HashMap<u8, Point>,
     a_key: Point,
     x_key: Point,
@@ -62,7 +62,7 @@ impl KeypadLayout {
             }
         }
         Self {
-            grid,
+            // grid,
             map,
             a_key,
             x_key,
@@ -76,7 +76,8 @@ struct Sequence {
 }
 
 impl Sequence {
-    fn new(cost: Cost, moves: Vec<u8>) -> Self {
+    // fn new(cost: Cost, moves: Vec<u8>) -> Self {
+    fn new(cost: Cost) -> Self {
         Self { cost }
         // Self { cost, moves }
     }
@@ -105,7 +106,8 @@ impl Add for Sequence {
     }
 }
 impl AddAssign for Sequence {
-    fn add_assign(&mut self, mut rhs: Self) {
+    // fn add_assign(&mut self, mut rhs: Self) {
+    fn add_assign(&mut self, rhs: Self) {
         self.cost += rhs.cost;
         // self.moves.append(&mut rhs.moves);
     }
@@ -146,14 +148,17 @@ impl Keypad {
             fastest: HashMap::new(),
         }
     }
+    #[allow(unused_variables)]
     fn push_button(&self, button: Point, repetitions: Cost) -> Sequence {
-        /// If there is a remote control then it should push A so that we push the button,
-        ///  otherwise we are the human and push the actual button directly.
-        let button = self.layout.grid[button];
+        // If there is a remote control then it should push A so that we push the button,
+        //  otherwise we are the human and push the actual button directly.
+        // let button = self.layout.grid[button];
         if self.controlled_by.is_none() {
-            Sequence::new(repetitions, vec![button; repetitions as usize])
+            // Sequence::new(repetitions, vec![button; repetitions as usize])
+            Sequence::new(repetitions)
         } else {
-            Sequence::new(repetitions, vec![b'A'; repetitions as usize])
+            // Sequence::new(repetitions, vec![b'A'; repetitions as usize])
+            Sequence::new(repetitions)
         }
     }
 
@@ -250,7 +255,6 @@ impl Keypad {
     }
 
     fn enter_code(&mut self, code: &[u8]) -> Sequence {
-        let vcode: String = code.iter().map(|&b| b as char).collect();
         let mut sequence = EMPTY_SEQUENCE;
         let mut curr_key = self.layout.a_key;
         for &next_key in code {
@@ -277,17 +281,17 @@ impl Keypad {
 
 fn vertical_range(from: Point, to: Point) -> std::ops::RangeInclusive<usize> {
     if from.y <= to.y {
-        (from.y..=to.y)
+        from.y..=to.y
     } else {
-        (to.y..=from.y)
+        to.y..=from.y
     }
 }
 
 fn horizontal_range(from: Point, to: Point) -> std::ops::RangeInclusive<usize> {
     if from.x <= to.x {
-        (from.x..=to.x)
+        from.x..=to.x
     } else {
-        (to.x..=from.x)
+        to.x..=from.x
     }
 }
 
@@ -334,6 +338,7 @@ impl Scenario {
         self.room_keypad.cost_for_targets(&self.targets)
     }
 
+    #[cfg(test)]
     fn enter_code(&mut self, code: &[u8]) -> Sequence {
         self.room_keypad.enter_code(code)
     }

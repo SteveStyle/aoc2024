@@ -1,6 +1,5 @@
 use std::{
     fmt::{self, Display, Formatter, Result},
-    io::BufRead,
     ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign, Rem, RemAssign},
 };
 
