@@ -16,6 +16,7 @@ const TESTINPUT2: &str = "1
 3
 2024";
 
+mod fixed_queue;
 mod grid;
 mod secret;
 
