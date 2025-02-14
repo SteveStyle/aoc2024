@@ -71,8 +71,6 @@ pub fn sum_secrets(secrets: &mut [Secret]) -> SecretNumber {
 
 fn update_totals(totals: &mut HashMap<[i8; 4], SecretNumber>, mut secret: Secret) {
     let mut found: HashSet<[i8; 4]> = HashSet::new();
-    // let mut prices = Queue2::new();
-    // let mut deltas = Queue4::new();
     let mut prices = FixedQueue::<i8, 2>::new();
     let mut deltas = FixedQueue::<i8, 4>::new();
 
@@ -87,9 +85,9 @@ fn update_totals(totals: &mut HashMap<[i8; 4], SecretNumber>, mut secret: Secret
         prices.push(secret.price());
         deltas.push(prices.delta());
         if !found.contains(deltas.as_slice()) {
-            let entry = totals.entry(*deltas.as_slice()).or_insert(0);
-            *entry += prices[1] as SecretNumber;
-            found.insert(*deltas.as_slice());
+            let entry = totals.entry(*deltas).or_insert(0);
+            *entry += prices.top() as SecretNumber;
+            found.insert(*deltas);
         }
     }
 }
