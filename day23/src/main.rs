@@ -41,4 +41,14 @@ td-yn";
 mod grid;
 mod nodes;
 
-fn main() {}
+use nodes::Graph;
+fn main() {
+    let graph = time(|| Graph::new(INPUT), "graph");
+    let triangles = time(|| graph.count_triangles(), "triangles");
+
+    graph.print_duration();
+    triangles.print_all();
+
+    let max_complete_graph = time(|| graph.largest_complete_graph_size(), "complete graph");
+    max_complete_graph.print_all();
+}
