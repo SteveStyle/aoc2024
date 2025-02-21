@@ -50,17 +50,6 @@ impl Graph {
             }
         }
         for node_edges in edges.iter_mut() {
-            // node_edges = filter_edges(&nodes, node_edges);
-            // *node_edges = node_edges
-            //     .iter()
-            //     .filter_map(|index| {
-            //         if nodes[*index].t_adjacent {
-            //             Some(*index)
-            //         } else {
-            //             None
-            //         }
-            //     })
-            //     .collect();
             node_edges.sort();
         }
 
@@ -111,29 +100,41 @@ impl Graph {
         count
     }
 
-    fn max_complete_graph(&self, graph_nodes: &[usize], hm: &mut HashMap<Vec<usize>, Cgr>) -> Cgr {
+    fn max_complete_graph<'a>(
+        &self,
+        graph_nodes: &[usize],
+        hm: &'a mut HashMap<Vec<usize>, Cgr>,
+    ) -> &'a Cgr {
         if graph_nodes.is_empty() {
             unreachable!();
         }
-        if graph_nodes.len() == 1 {
-            return Cgr::new(1, graph_nodes[0]);
-        }
-        if let Some(return_value) = hm.get(graph_nodes) {
-            return_value.clone()
+        if hm.contains_key(graph_nodes) {
+            hm.get(graph_nodes).unwrap()
+        } else if graph_nodes.len() == 1 {
+            hm.entry(graph_nodes.to_vec())
+                .or_insert(Cgr::new(graph_nodes[0]))
         } else {
+            let rest_len = self.max_complete_graph(&graph_nodes[1..], hm).len();
+
             let mut iter1 = self.edges[graph_nodes[0]].iter();
             let mut iter2 = graph_nodes[1..].iter();
             let v: Vec<usize> =
                 intersect_sorted_iterators::IntersectionIterator::new(&mut iter1, &mut iter2)
                     .copied()
                     .collect();
-            let mut return_value = Cgr::new(1, graph_nodes[0]);
-            if !v.is_empty() {
-                return_value.append(&mut self.max_complete_graph(v.as_ref(), hm));
+            let mut new;
+            if v.is_empty() {
+                new = hm.get(&graph_nodes[1..]).unwrap().clone();
+            } else {
+                let minus_first_node_len = self.max_complete_graph(v.as_ref(), hm).len();
+                if minus_first_node_len < rest_len {
+                    new = hm.get(&graph_nodes[1..]).unwrap().clone();
+                } else {
+                    new = hm.get(&v).unwrap().clone();
+                    new.push(graph_nodes[0]);
+                }
             }
-            return_value = return_value.max(self.max_complete_graph(&graph_nodes[1..], hm));
-            hm.insert(graph_nodes.to_vec(), return_value.clone());
-            return_value
+            hm.entry(graph_nodes.to_vec()).or_insert(new)
         }
     }
 
@@ -150,33 +151,38 @@ impl Graph {
     pub fn largest_complete_graph_size(&self) -> Cgr {
         let mut hm = HashMap::new();
         self.max_complete_graph(&Graph::ALL_VALUES[..], &mut hm)
+            .clone()
     }
 }
 
 #[derive(Eq, Clone)]
 pub struct Cgr {
-    pub size: usize,
     nodes: Vec<usize>,
 }
 
 impl std::fmt::Debug for Cgr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Cgr")
-            .field("size", &self.size)
             .field("nodes", &self.as_string())
             .finish()
     }
 }
 
+const CGR_EMPTY: Cgr = Cgr { nodes: Vec::new() };
 impl Cgr {
-    pub fn new(size: usize, node: usize) -> Self {
+    pub fn new(node: usize) -> Self {
         Self {
-            size,
+            // size,
             nodes: vec![node],
         }
     }
-    pub fn as_string(&self) -> String {
-        self.nodes.iter().fold(String::new(), |mut acc, &index| {
+    fn len(&self) -> usize {
+        self.nodes.len()
+    }
+    fn as_string(&self) -> String {
+        let mut nodes = self.nodes.clone();
+        nodes.reverse();
+        nodes.iter().fold(String::new(), |mut acc, &index| {
             if !acc.is_empty() {
                 acc.push(',');
             }
@@ -185,21 +191,24 @@ impl Cgr {
             acc
         })
     }
-    pub fn append(&mut self, other: &mut Self) {
-        self.size += other.size;
-        self.nodes.append(&mut other.nodes);
+    fn push(&mut self, node_index: usize) {
+        self.nodes.push(node_index);
     }
+    // pub fn append(&mut self, other: &mut Self) {
+    //     // self.size += other.size;
+    //     self.nodes.append(&mut other.nodes);
+    // }
 }
 
 impl PartialEq for Cgr {
     fn eq(&self, other: &Self) -> bool {
-        self.size == other.size
+        self.len() == other.len()
     }
 }
 
 impl Ord for Cgr {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.size.cmp(&other.size)
+        self.len().cmp(&other.len())
     }
 }
 
@@ -237,14 +246,14 @@ mod tests {
         let graph = Graph::new(TESTINPUT);
         let largest = graph.largest_complete_graph_size();
         println!("{:?}", largest);
-        assert_eq!(largest.size, 4);
+        assert_eq!(largest.len(), 4);
     }
 
     #[test]
     fn test_cgr() {
-        let mut cgr = Cgr::new(1, 0);
-        cgr.append(&mut Cgr::new(1, 1));
-        cgr.append(&mut Cgr::new(1, 2));
+        let mut cgr = Cgr::new(0);
+        cgr.push(1);
+        cgr.push(2);
         println!("{cgr:?}, {}, {}", cgr.nodes.len(), cgr.as_string());
     }
 }
