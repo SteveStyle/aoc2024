@@ -42,6 +42,7 @@ mod grid;
 mod nodes;
 
 use nodes::Graph;
+
 fn main() {
     let graph = time(|| Graph::new(INPUT), "graph");
     let triangles = time(|| graph.count_triangles(), "triangles");

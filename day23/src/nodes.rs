@@ -100,41 +100,41 @@ impl Graph {
         count
     }
 
-    fn max_complete_graph<'a>(
-        &self,
-        graph_nodes: &[usize],
-        hm: &'a mut HashMap<Vec<usize>, Cgr>,
-    ) -> &'a Cgr {
+    fn max_complete_graph(&self, graph_nodes: &[usize], hm: &mut HashMap<Vec<usize>, Cgr>) -> Cgr {
         if graph_nodes.is_empty() {
             unreachable!();
         }
         if hm.contains_key(graph_nodes) {
-            hm.get(graph_nodes).unwrap()
-        } else if graph_nodes.len() == 1 {
-            hm.entry(graph_nodes.to_vec())
-                .or_insert(Cgr::new(graph_nodes[0]))
+            hm.get(graph_nodes).unwrap().clone()
         } else {
-            let rest_len = self.max_complete_graph(&graph_nodes[1..], hm).len();
-
-            let mut iter1 = self.edges[graph_nodes[0]].iter();
-            let mut iter2 = graph_nodes[1..].iter();
-            let v: Vec<usize> =
-                intersect_sorted_iterators::IntersectionIterator::new(&mut iter1, &mut iter2)
-                    .copied()
-                    .collect();
-            let mut new;
-            if v.is_empty() {
-                new = hm.get(&graph_nodes[1..]).unwrap().clone();
+            let mut result;
+            if graph_nodes.len() == 1 {
+                result = Cgr::new(graph_nodes[0]);
             } else {
-                let minus_first_node_len = self.max_complete_graph(v.as_ref(), hm).len();
-                if minus_first_node_len < rest_len {
-                    new = hm.get(&graph_nodes[1..]).unwrap().clone();
+                let rest = self.max_complete_graph(&graph_nodes[1..], hm);
+                let rest_len = rest.len();
+
+                let mut iter1 = self.edges[graph_nodes[0]].iter();
+                let mut iter2 = graph_nodes[1..].iter();
+                let v: Vec<usize> =
+                    intersect_sorted_iterators::IntersectionIterator::new(&mut iter1, &mut iter2)
+                        .copied()
+                        .collect();
+                if v.is_empty() {
+                    result = rest;
                 } else {
-                    new = hm.get(&v).unwrap().clone();
-                    new.push(graph_nodes[0]);
+                    let minus_first_node = self.max_complete_graph(v.as_ref(), hm);
+                    let minus_first_node_len = minus_first_node.len();
+                    if minus_first_node_len < rest_len {
+                        result = rest;
+                    } else {
+                        result = minus_first_node;
+                        result.push(graph_nodes[0]);
+                    }
                 }
             }
-            hm.entry(graph_nodes.to_vec()).or_insert(new)
+            hm.insert(graph_nodes.to_vec(), result.clone());
+            result
         }
     }
 
@@ -151,7 +151,6 @@ impl Graph {
     pub fn largest_complete_graph_size(&self) -> Cgr {
         let mut hm = HashMap::new();
         self.max_complete_graph(&Graph::ALL_VALUES[..], &mut hm)
-            .clone()
     }
 }
 
