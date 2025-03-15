@@ -1,5 +1,6 @@
 #![allow(dead_code, unused)]
 
+use stephen_morris_utils::grid;
 use stephen_morris_utils::timer::time;
 const INPUT: &str = include_str!("input.txt");
 
@@ -30,7 +31,6 @@ const TESTINPUT: &str = "5,4
 1,6
 2,0";
 
-mod grid;
 mod memory;
 
 use memory::Memory;

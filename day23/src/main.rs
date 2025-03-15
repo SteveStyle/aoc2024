@@ -37,10 +37,7 @@ wh-qp
 tb-vc
 td-yn";
 
-// mod fixed_queue;
-mod grid;
 mod nodes;
-
 use nodes::Graph;
 
 fn main() {

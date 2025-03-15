@@ -1,5 +1,6 @@
 #![allow(dead_code, unused)]
 
+use stephen_morris_utils::grid;
 use stephen_morris_utils::timer;
 
 const INPUT: &str = include_str!("input.txt");
@@ -39,7 +40,6 @@ const TESTINPUT2: &str = "#################
 #S#.............#
 #################";
 
-mod grid;
 mod maze;
 
 fn main() {

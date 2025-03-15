@@ -1,6 +1,8 @@
 #![allow(dead_code, unused)]
 
+use stephen_morris_utils::grid;
 use stephen_morris_utils::timer::time;
+
 const INPUT: &str = include_str!("input.txt");
 
 #[allow(dead_code)]
@@ -15,7 +17,6 @@ bwurrg
 brgr
 bbrgwb";
 
-mod grid;
 mod towels;
 
 use towels::TowelWords;

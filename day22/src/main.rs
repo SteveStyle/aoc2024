@@ -1,6 +1,7 @@
 // #![allow(dead_code, unused)]
 
 use secret::{most_bananas, parse_input, sum_secrets};
+use stephen_morris_utils::fixed_queue;
 use stephen_morris_utils::timer::time;
 const INPUT: &str = include_str!("input.txt");
 
@@ -16,8 +17,6 @@ const TESTINPUT2: &str = "1
 3
 2024";
 
-mod fixed_queue;
-mod grid;
 mod secret;
 
 fn main() {

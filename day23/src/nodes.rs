@@ -217,7 +217,7 @@ impl PartialOrd for Cgr {
     }
 }
 
-pub mod intersect_sorted_iterators;
+use stephen_morris_utils::intersect_sorted_iterators;
 
 #[cfg(test)]
 mod tests {
