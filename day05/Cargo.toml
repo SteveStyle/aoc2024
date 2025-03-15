@@ -1,7 +1,8 @@
 [package]
 name = "day05"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-stephen_morris_utils = { git = "https://github.com/SteveStyle/utils.git" }
+stephen_morris_utils = { path = "../stephen_morris_utils/" }
+# stephen_morris_utils = { git = "https://github.com/SteveStyle/utils.git" }

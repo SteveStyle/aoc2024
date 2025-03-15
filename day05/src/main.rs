@@ -1,7 +1,8 @@
 use stephen_morris_utils::timer;
 
 const INPUT: &str = include_str!("input.txt");
-#[allow(dead_code)]
+
+#[cfg(test)]
 const TESTINPUT: &str = "47|53
 97|13
 97|61

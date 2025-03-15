@@ -1,4 +1,4 @@
-#![allow(dead_code, unused)]
+use stephen_morris_utils::grid;
 use stephen_morris_utils::timer;
 use trailheads::trailheads2;
 
@@ -13,7 +13,6 @@ const TESTINPUT: &str = "89010123
 01329801
 10456732";
 
-mod grid;
 mod trailheads;
 
 fn main() {

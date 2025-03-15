@@ -674,7 +674,10 @@ mod tests {
             }
         }
 
-        let area = (&grid).into_iter().filter(|(_, &value)| value == 1).count();
+        let area = (&grid)
+            .into_iter()
+            .filter(|(_, value)| **value == 1)
+            .count();
         assert_eq!(area, 4);
     }
 
@@ -862,7 +865,7 @@ mod tests {
         // Verify modifications
         assert_eq!(
             grid.orthogonal_neighbors(center)
-                .filter(|(_, &v)| v == 1)
+                .filter(|(_, v)| **v == 1)
                 .count(),
             4
         );

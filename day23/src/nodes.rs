@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Index};
+use std::collections::HashMap;
 
 use intersect_sorted_iterators::IntersectionIterator;
 
@@ -167,7 +167,7 @@ impl std::fmt::Debug for Cgr {
     }
 }
 
-const CGR_EMPTY: Cgr = Cgr { nodes: Vec::new() };
+// const CGR_EMPTY: Cgr = Cgr { nodes: Vec::new() };
 impl Cgr {
     pub fn new(node: usize) -> Self {
         Self {

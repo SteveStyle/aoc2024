@@ -1,4 +1,3 @@
-//#![allow(dead_code, unused)]
 use std::{collections::HashMap, ops::Deref, ops::DerefMut};
 
 type Rules = Vec<(usize, usize)>;
@@ -44,7 +43,7 @@ pub fn parse_input(input: &str) -> (Rules, Vec<Update>) {
     (rules, update_list)
 }
 
-fn test_update<'a>(rules: &Rules, update: &'a Update) -> bool {
+fn test_update(rules: &Rules, update: &Update) -> bool {
     let mut index: [Option<usize>; 100] = [None; 100];
     for (i, value) in update.0.iter().enumerate() {
         index[*value] = Some(i);

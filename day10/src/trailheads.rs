@@ -1,6 +1,5 @@
-use std::collections::{hash_set, HashSet};
+use std::collections::HashSet;
 
-use super::grid;
 use crate::grid::{Grid, Point};
 pub fn parse_input(input: &str) -> Grid<u8> {
     Grid::from(input)
@@ -9,7 +8,7 @@ type Count = usize;
 pub fn trailheads(grid: &Grid<u8>) -> Count {
     let mut count = 0;
     let mut hashset: HashSet<Point> = HashSet::new();
-    for (x, y, &v) in grid {
+    for (Point { x, y }, &v) in grid {
         if v == b'0' {
             hashset.clear();
             find_heads(Point::new(x, y), b'0', &mut hashset, grid);
@@ -23,11 +22,9 @@ fn find_heads(point: Point, v: u8, hashset: &mut HashSet<Point>, grid: &Grid<u8>
     if v == b'9' {
         hashset.insert(point);
     } else {
-        for (i, j) in [(-1, 0), (0, -1), (1, 0), (0, 1)] {
-            if let Some(new_point) = grid.test_move(point, i, j) {
-                if *grid.get_pos(new_point) == v + 1 {
-                    find_heads(new_point, v + 1, hashset, grid);
-                }
+        for (new_point, new_point_value) in grid.orthogonal_neighbors(point) {
+            if *new_point_value == v + 1 {
+                find_heads(new_point, v + 1, hashset, grid);
             }
         }
     }
@@ -35,7 +32,7 @@ fn find_heads(point: Point, v: u8, hashset: &mut HashSet<Point>, grid: &Grid<u8>
 
 pub fn trailheads2(grid: &Grid<u8>) -> Count {
     let mut count = 0;
-    for (x, y, &v) in grid {
+    for (Point { x, y }, &v) in grid {
         if v == b'0' {
             count += find_heads2(Point::new(x, y), b'0', grid);
             //println!("trailhead at ({x},{y}) has count {}", hashset.len());
@@ -48,11 +45,9 @@ fn find_heads2(point: Point, v: u8, grid: &Grid<u8>) -> Count {
         1
     } else {
         let mut count = 0;
-        for (i, j) in [(-1, 0), (0, -1), (1, 0), (0, 1)] {
-            if let Some(new_point) = grid.test_move(point, i, j) {
-                if *grid.get_pos(new_point) == v + 1 {
-                    count += find_heads2(new_point, v + 1, grid);
-                }
+        for (new_point, new_point_value) in grid.orthogonal_neighbors(point) {
+            if *new_point_value == v + 1 {
+                count += find_heads2(new_point, v + 1, grid);
             }
         }
         count
@@ -61,6 +56,7 @@ fn find_heads2(point: Point, v: u8, grid: &Grid<u8>) -> Count {
 
 #[cfg(test)]
 mod tests {
+    use stephen_morris_utils::grid::Point;
 
     #[test]
     fn test_part2() {
@@ -125,7 +121,7 @@ mod tests {
         let grid = super::parse_input(input);
         for y in 0..grid.height {
             for x in 0..grid.width {
-                print!("{}", *grid.get(x, y) as char);
+                print!("{}", *grid.get(Point { x, y }) as char);
             }
             println!();
         }

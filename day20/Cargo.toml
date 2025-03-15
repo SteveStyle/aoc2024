@@ -1,8 +1,9 @@
 [package]
 name = "day20"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 itertools = "0.14.0"
-stephen_morris_utils = { git = "https://github.com/SteveStyle/utils.git" }
+stephen_morris_utils = { path = "../stephen_morris_utils/" }
+# stephen_morris_utils = { git = "https://github.com/SteveStyle/utils.git" }

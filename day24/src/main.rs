@@ -1,10 +1,10 @@
 // #![allow(dead_code, unused)]
 
-use logic::Logic;
+use logic::LogicMaster;
 use stephen_morris_utils::timer::time;
 const INPUT: &str = include_str!("input.txt");
 
-#[allow(dead_code)]
+#[cfg(test)]
 const TESTINPUT: &str = "x00: 1
 x01: 1
 x02: 1
@@ -15,6 +15,7 @@ y02: 0
 x00 AND y00 -> z00
 x01 XOR y01 -> z01
 x02 OR y02 -> z02";
+#[cfg(test)]
 const TESTINPUT2: &str = "x00: 1
 x01: 0
 x02: 1
@@ -66,9 +67,13 @@ tnw OR pbm -> gnj";
 mod logic;
 
 fn main() {
-    let mut logic = time(|| Logic::new(INPUT), "Logic");
-    let output = time(|| logic.eval_all(), "eval_all");
+    let mut lm = time(|| LogicMaster::new(INPUT), "Logic");
+    let output = time(|| lm.eval_output(), "eval_all");
 
-    logic.print_duration();
+    lm.print_duration();
     output.print_all();
+
+    // let mut logic = Logic::new(INPUT);
+    // logic.make_analytics();
+    // logic.print_analytics();
 }

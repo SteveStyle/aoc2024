@@ -94,7 +94,6 @@ pub fn check_reports2(reports: &mut [Vec<i32>]) -> i32 {
 }
 
 #[allow(unused_imports, dead_code)]
-
 mod tests {
     use crate::TESTINPUT;
 
