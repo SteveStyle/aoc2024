@@ -1,5 +1,6 @@
 //#![allow(dead_code, unused)]
 
+use stephen_morris_utils::grid;
 use stephen_morris_utils::timer;
 
 const INPUT: &str = include_str!("input.txt");
@@ -18,7 +19,7 @@ p=7,3 v=-1,2
 p=2,4 v=2,-3
 p=9,5 v=-3,-3";
 
-mod grid;
+// mod grid;
 mod lanternfish;
 mod lanternfish2;
 

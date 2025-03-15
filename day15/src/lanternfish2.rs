@@ -47,7 +47,7 @@ impl Lanternfish {
     }
 
     pub fn move_cell_horizontal(&mut self, this_cell_point: Point, direction: Direction) -> bool {
-        assert!(direction == Direction::Left || direction == Direction::Right);
+        assert!(direction == Direction::West || direction == Direction::East);
         // move cell moves the value of the this cell into the next cell.  If the next cell is occupied it requests that that cell is also moved.
         // If the next cell is wall it returns false.
         let this_cell_value = self.grid[this_cell_point];
@@ -78,7 +78,7 @@ impl Lanternfish {
         this_row_points_to_move: Vec<Point>,
         direction: Direction,
     ) -> bool {
-        assert!(direction == Direction::Up || direction == Direction::Down);
+        assert!(direction == Direction::North || direction == Direction::South);
         if this_row_points_to_move.is_empty() {
             return true;
         }
@@ -97,7 +97,7 @@ impl Lanternfish {
                                 acc.push(next_p);
 
                                 if let Some(new_p) =
-                                    p + (Vector::from(direction) + Vector::from(Direction::Right))
+                                    p + (Vector::from(direction) + Vector::from(Direction::East))
                                 {
                                     acc.push(new_p);
                                 }
@@ -106,7 +106,7 @@ impl Lanternfish {
                                 acc.push(next_p);
 
                                 if let Some(new_p) =
-                                    p + (Vector::from(direction) + Vector::from(Direction::Left))
+                                    p + (Vector::from(direction) + Vector::from(Direction::West))
                                 {
                                     acc.push(new_p);
                                 }
@@ -139,7 +139,7 @@ impl Lanternfish {
     }
 
     fn move_cell(&mut self, this_cell_point: Point, direction: Direction) -> bool {
-        if direction == Direction::Left || direction == Direction::Right {
+        if direction == Direction::West || direction == Direction::East {
             self.move_cell_horizontal(this_cell_point, direction)
         } else {
             self.move_cell_vertical(vec![this_cell_point], direction)
