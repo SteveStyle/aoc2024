@@ -72,8 +72,4 @@ fn main() {
 
     lm.print_duration();
     output.print_all();
-
-    // let mut logic = Logic::new(INPUT);
-    // logic.make_analytics();
-    // logic.print_analytics();
 }

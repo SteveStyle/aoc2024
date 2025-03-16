@@ -36,7 +36,7 @@ impl WireName {
     pub fn as_string(&self) -> String {
         self.0.iter().map(|b| *b as char).collect()
     }
-    pub fn level(&self) -> Option<usize> {
+    pub fn bit(&self) -> Option<usize> {
         match self[0] {
             b'x' | b'y' | b'z' => {
                 Some((self.0[1] - b'0') as usize * 10 + (self.0[2] - b'0') as usize)
@@ -45,10 +45,10 @@ impl WireName {
         }
     }
 }
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Default, Clone, Copy)]
+pub struct WireValuePayload(pub bool, pub WireAnalytics);
 
-pub type WireValuePayload = (bool, WireAnalytics);
-
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
 pub enum WireValue {
     Value(WireValuePayload),
     Connection {
@@ -58,7 +58,7 @@ pub enum WireValue {
     },
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Default, Copy)]
+#[derive(Clone, PartialEq, Eq, Debug, Default, Copy, PartialOrd, Ord)]
 pub(crate) struct WireAnalytics {
     pub(crate) gates: GateFlags,
 }
@@ -72,7 +72,7 @@ impl WireAnalytics {
 }
 
 // a set of bits indicating whether gate n is included in a set
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct GateFlags([u128; 2]);
 
 impl GateFlags {
@@ -112,6 +112,14 @@ mod tests {
     }
     fn ints_from_flags(flags: GateFlags) -> (u128, u128) {
         (flags.0[0], flags.0[1])
+    }
+
+    #[test]
+    fn test_gate_flags_merge() {
+        let flags1 = flags_from_ints(0b101, 0b1000);
+        let flags2 = flags_from_ints(0b1011, 0b10010);
+        let flags3 = flags1.merge(&flags2);
+        assert_eq!(ints_from_flags(flags3), (0b1111, 0b11010));
     }
 
     #[test]
@@ -161,6 +169,6 @@ mod tests {
     fn test_level() {
         let wn = WireName::from_char_bit(b'x', 1);
         assert_eq!(wn.as_string(), "x01");
-        assert_eq!(wn.level(), Some(1));
+        assert_eq!(wn.bit(), Some(1));
     }
 }

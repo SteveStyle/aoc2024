@@ -9,7 +9,7 @@ const NO_GATES: usize = 313 - 91;
 const HASHMAP_SIZE: usize = 2 * INPUT_BITS + NO_GATES;
 mod wire_helpers;
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
 pub enum Operation {
     And,
     Or,
@@ -21,6 +21,7 @@ pub struct LogicMaster {
     x: usize,
     y: usize,
     gates: Vec<(WireName, WireValue)>,
+    highest_z_bit: usize,
     working_logic: Logic,
 }
 
@@ -34,14 +35,18 @@ impl LogicMaster {
 
         for line in input_values.lines() {
             let bytes = line.as_bytes();
-            let level = WireName::from_slice(&bytes[0..3]).level().unwrap();
-            if bytes[0] == b'X' {
-                x |= 1 << level
-            } else {
-                y |= 1 << level
-            };
+            let level = WireName::from_slice(&bytes[0..3]).bit().unwrap();
+            let bit_value = bytes[5] == b'1';
+            if bit_value {
+                if bytes[0] == b'x' {
+                    x |= 1 << level
+                } else {
+                    y |= 1 << level
+                }
+            }
         }
 
+        let mut highest_z_bit = 0;
         for line in input_gates.lines() {
             let mut bytes = line.as_bytes();
             let input1 = WireName::from_slice(&bytes[0..3]);
@@ -59,6 +64,9 @@ impl LogicMaster {
             }
             let input2 = WireName::from_slice(&bytes[0..3]);
             let output = WireName::from_slice(&bytes[7..]);
+            if output[0] == b'z' {
+                highest_z_bit = highest_z_bit.max(output.bit().unwrap());
+            }
             gates.push((
                 output,
                 WireValue::Connection {
@@ -69,14 +77,35 @@ impl LogicMaster {
             ));
         }
 
+        gates.sort();
+
         let working_logic = Logic::new();
         Self {
             x,
             y,
             gates,
             working_logic,
+            highest_z_bit,
         }
     }
+
+    // use a binary search to find the gate index in the sorted gates vector
+    fn get_gate_index(&self) -> usize {
+        let mut low = 0;
+        let mut high = self.gates.len();
+        while low < high {
+            let mid = (low + high) / 2;
+            if self.gates[mid].0
+                < WireName::from_char_bit(b'z', u8::try_from(self.highest_z_bit).unwrap())
+            {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        low
+    }
+
     pub fn calc(&mut self, x: usize, y: usize) -> usize {
         self.working_logic.wires.clear();
         //TODO: accept wire swaps
@@ -85,7 +114,24 @@ impl LogicMaster {
         }
         self.working_logic.set_variable(x, b'x');
         self.working_logic.set_variable(y, b'y');
-        self.working_logic.eval_output().value
+
+        debug_assert_eq!(self.working_logic.get_variable(b'x'), x);
+        debug_assert_eq!(self.working_logic.get_variable(b'y'), y);
+
+        let mut ear = Ear::default();
+        for bit in (0..=self.highest_z_bit).rev() {
+            let zname = WireName::from_char_bit(b'z', u8::try_from(bit).expect("bit fits in u8"));
+            let wvp = self.working_logic.eval(zname);
+            #[cfg(test)]
+            println!("zname {zname:?} wvp {wvp:?}");
+            ear.push(zname, wvp);
+        }
+        #[cfg(test)]
+        println!("ear {ear:?}");
+
+        ear.value
+
+        // self.working_logic.eval_output().value
     }
     pub fn eval_output(&mut self) -> usize {
         self.calc(self.x, self.y)
@@ -140,15 +186,15 @@ impl Logic {
                 input2: input2_value,
                 operation,
             } => {
-                let (input1_value, input1_analytics) = self.eval(input1_value);
-                let (input2_value, input2_analytics) = self.eval(input2_value);
+                let WireValuePayload(input1_value, input1_analytics) = self.eval(input1_value);
+                let WireValuePayload(input2_value, input2_analytics) = self.eval(input2_value);
                 let value = match operation {
                     Operation::And => input1_value & input2_value,
                     Operation::Or => input1_value | input2_value,
                     Operation::Xor => input1_value ^ input2_value,
                 };
                 let analytics = input1_analytics.merge(&input2_analytics);
-                let wvp = (value, analytics);
+                let wvp = WireValuePayload(value, analytics);
                 self.wires.insert(wire_name, WireValue::Value(wvp));
                 wvp
             }
@@ -160,7 +206,7 @@ impl Logic {
             let bit_value = (variable & (1 << bit)) != 0;
             self.wires.insert(
                 WireName::from_char_bit(variable_char, u8::try_from(bit).expect("bit fits in u8")),
-                WireValue::Value((bit_value, WireAnalytics::default())),
+                WireValue::Value(WireValuePayload(bit_value, WireAnalytics::default())),
             );
         }
     }
@@ -172,8 +218,10 @@ impl Logic {
                 variable_char,
                 u8::try_from(bit).expect("bit fits in u8"),
             )) {
-                Some(WireValue::Value((stored_bit_value, _))) => {
-                    variable += *stored_bit_value as usize
+                Some(WireValue::Value(WireValuePayload(stored_bit_value, _))) => {
+                    if *stored_bit_value {
+                        variable |= 1 << bit
+                    }
                 }
                 None => {}
                 Some(WireValue::Connection { .. }) => unreachable!(),
@@ -191,19 +239,11 @@ impl Logic {
             ))
             .unwrap()
         {
-            WireValue::Value((stored_bit_value, _)) => *variable += *stored_bit_value as usize,
+            WireValue::Value(WireValuePayload(stored_bit_value, _)) => {
+                *variable += *stored_bit_value as usize
+            }
             WireValue::Connection { .. } => unreachable!(),
         }
-    }
-
-    pub fn eval_output(&mut self) -> Ear {
-        let mut ear = Ear::default();
-        for bit in 0..OUTPUT_BITS {
-            let zname = WireName::from_char_bit(b'z', u8::try_from(bit).expect("bit fits in u8"));
-            let wvp = self.eval(zname);
-            ear.push(zname, wvp);
-        }
-        ear
     }
 }
 
