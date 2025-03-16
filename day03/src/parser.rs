@@ -56,20 +56,6 @@ where
             None => term.is_empty().then_some((&slice[slice.len()..], number)),
         }
     }
-    /*     fn parse_item(slice: &'a str, term: &str) -> Option<(&'a str, T)> {
-        let slice = slice.trim_start();
-
-        // Find the terminator or use end of string
-        let end_idx = term
-            .is_empty()
-            .then_some(slice.len())
-            .or_else(|| slice.find(term))?;
-
-        let (num_str, rest) = slice.split_at(end_idx);
-        let number = num_str.trim().parse().ok()?;
-
-        Some((rest.strip_prefix(term).unwrap_or(rest), number))
-    } */
 }
 
 struct StringMatches;
@@ -152,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_parse_item() {
-        let input = "Mul(1, 2) Do() Don't()";
+        let input = "mul(1,2) do() don't()";
         let mut iter = ParseIterator::new(input);
 
         assert_eq!(iter.next(), Some(Instruction::Mul(1, 2)));
