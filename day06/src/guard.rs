@@ -1,25 +1,38 @@
 use std::collections::HashSet;
 
-use stephen_morris_utils::pos::{Direction, };
+use stephen_morris_utils::grid::{Direction, Point};
 
 type Grid = crate::grid::Grid<u8>;
-type Position = stephen_morris_utils::pos::Position<usize>;
 
 pub fn parse_input(input: &str) -> Grid {
-    let grid = Grid::from(input);
-    grid
+    Grid::from(input)
 }
 
 pub fn extract_guard(grid: &mut Grid) -> Option<Guard> {
     let mut ret = None;
-    for (row, col, c) in &*grid {
-        match c {
-            b'^' => {grid.set(row, col, b'.'); ret = Some(Guard::new(row, col, Direction::Up) ); break;},
-            b'v' => {grid.set(row, col, b'.'); ret = Some(Guard::new(row, col, Direction::Down)); break;},
-            b'<' => {grid.set(row, col, b'.'); ret = Some(Guard::new(row, col, Direction::Left)); break;},
-            b'>' => {grid.set(row, col, b'.'); ret = Some(Guard::new(row, col, Direction::Right)); break;},
+    for (point, cell_value) in &*grid {
+        match cell_value {
+            b'^' => {
+                grid.set(point, b'.');
+                ret = Some(Guard::new(point, Direction::North));
+                break;
+            }
+            b'v' => {
+                grid.set(point, b'.');
+                ret = Some(Guard::new(point, Direction::South));
+                break;
+            }
+            b'<' => {
+                grid.set(point, b'.');
+                ret = Some(Guard::new(point, Direction::West));
+                break;
+            }
+            b'>' => {
+                grid.set(point, b'.');
+                ret = Some(Guard::new(point, Direction::East));
+                break;
+            }
             _ => {}
-
         }
     }
     ret
@@ -27,38 +40,35 @@ pub fn extract_guard(grid: &mut Grid) -> Option<Guard> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Guard {
-    pos: Position,
+    pos: Point,
     direction: Direction,
-}  
+}
 
 impl Guard {
-    pub fn new_pos(pos: Position, direction: Direction) -> Self {
-        Self {pos, direction}
+    pub fn new(pos: Point, direction: Direction) -> Self {
+        Self { pos, direction }
     }
-    pub fn new(row: usize, col: usize, direction: Direction) -> Self {
-        Self {pos: Position::new(col, row), direction}
-    }
+
     pub fn move_once(&mut self, grid: &Grid) -> bool {
-        if grid.test_bounds( self.pos, self.direction) {         
-            let new_pos = self.pos + self.direction;
-            if *grid.get_pos(new_pos) == b'#' {
-                self.direction = self.direction.turn_right();
-            } else {
-                self.pos = new_pos;
+        match grid.add_direction(self.pos, self.direction) {
+            Some(next_pos) => {
+                if grid[next_pos] == b'#' {
+                    self.direction = self.direction.right()
+                } else {
+                    self.pos = next_pos
+                };
+                true
             }
-            true
-        } else {
-            false
+            None => false,
         }
-    
     }
     pub fn count_guard_positions(&mut self, grid: &Grid) -> usize {
         let mut guard_positions = Grid::new_default(grid.width, grid.height);
-        guard_positions.set_pos(self.pos, 1);
+        guard_positions[self.pos] = 1;
         while self.move_once(grid) {
-            guard_positions.set_pos(self.pos, 1);
+            guard_positions[self.pos] = 1;
         }
-        guard_positions.into_iter().map(|(_,_,v)| v as usize).sum()
+        guard_positions.into_iter().map(|(_, v)| v as usize).sum()
     }
 
     pub fn count_blockers(&self, grid: &Grid) -> usize {
@@ -66,39 +76,37 @@ impl Guard {
 
         let mut guard_copy = *self;
         let mut grid_copy = grid.clone();
-        
+
         while guard_copy.move_once(grid) {
-            guard_positions.set_pos(guard_copy.pos, 1);
+            guard_positions[guard_copy.pos] = 1;
         }
 
-        let position_count: usize = (&guard_positions).into_iter().map(|(_,_,v)| *v as usize).sum();
+        let position_count: usize = (&guard_positions)
+            .into_iter()
+            .map(|(_, v)| *v as usize)
+            .sum();
         println!("{:?}", position_count);
 
         let mut possible_blockers = Vec::new();
 
-        for (row, col, c) in &guard_positions {
-            if *c == 1 {
-                grid_copy.set(row, col, b'#');
+        for (point, point_value) in &guard_positions {
+            if *point_value == 1 {
+                grid_copy[point] = b'#';
                 guard_copy = *self;
                 let mut hs = HashSet::new();
                 while guard_copy.move_once(&grid_copy) {
-                    if !hs.insert(guard_copy.clone()) {
-                        possible_blockers.push((row, col));
+                    if !hs.insert(guard_copy) {
+                        possible_blockers.push(point);
                         break;
                     }
                 }
-                grid_copy.set(row, col, b'.');
+                grid_copy.set(point, b'.');
             }
         }
 
-
         possible_blockers.len()
-
     }
-
 }
-
-    
 
 #[cfg(test)]
 mod tests {
@@ -113,7 +121,7 @@ mod tests {
     #[test]
     fn test_blockers() {
         let mut grid = parse_input(crate::TESTINPUT);
-        let mut guard = extract_guard(&mut grid).unwrap();
+        let guard = extract_guard(&mut grid).unwrap();
         assert_eq!(guard.count_blockers(&grid), 6);
     }
 }

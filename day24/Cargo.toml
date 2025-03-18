@@ -2,6 +2,7 @@
 name = "day24"
 version = "0.1.0"
 edition = "2024"
+lto = true
 
 [dependencies]
 itertools = "0.14.0"

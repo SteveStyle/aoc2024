@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::{collections::HashMap, fmt::Debug, ops::Deref};
+use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::WaitTimeoutResult};
 
 use wire_helpers::{WireAnalytics, WireName, WireValue, WireValuePayload};
 
@@ -16,20 +16,33 @@ pub enum Operation {
     Xor,
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct EngineWire {
+    wire_name: WireName,
+    value_start: WireValue<usize>,
+    value_calc: WireValue<usize>,
+    wire_analytics: WireAnalytics,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct WireNameValue {
+    wire_name: WireName,
+    wire_value: WireValue<WireName>,
+}
 #[derive(Debug, Default)]
 pub struct LogicMaster {
     x: usize,
     y: usize,
-    gates: Vec<(WireName, WireValue)>,
+    gates: Vec<WireNameValue>,
     highest_z_bit: usize,
-    working_logic: Logic,
+    engine: Vec<EngineWire>,
 }
 
 impl LogicMaster {
     pub fn new(input: &str) -> Self {
         let mut x = 0;
         let mut y = 0;
-        let mut gates = Vec::new();
+        let mut gates = Vec::with_capacity(NO_GATES + OUTPUT_BITS);
 
         let (input_values, input_gates) = input.split_once("\n\n").unwrap();
 
@@ -67,43 +80,86 @@ impl LogicMaster {
             if output[0] == b'z' {
                 highest_z_bit = highest_z_bit.max(output.bit().unwrap());
             }
-            gates.push((
-                output,
-                WireValue::Connection {
+            gates.push(WireNameValue {
+                wire_name: output,
+                wire_value: WireValue::Connection {
                     input1,
                     input2,
                     operation,
                 },
-            ));
+            });
         }
 
         gates.sort();
 
-        let working_logic = Logic::new();
+        let mut engine = Vec::with_capacity(NO_GATES + 2 * INPUT_BITS + OUTPUT_BITS);
+        for &WireNameValue {
+            wire_name,
+            wire_value,
+        } in &gates
+        {
+            let value_start = match wire_value {
+                WireValue::Value(b) => WireValue::Value(b),
+                WireValue::Connection {
+                    input1,
+                    input2,
+                    operation,
+                } => WireValue::Connection {
+                    input1: Self::get_gate_index(&gates, input1),
+                    input2: Self::get_gate_index(&gates, input2),
+                    operation,
+                },
+            };
+            engine.push(EngineWire {
+                wire_name,
+                value_start,
+                value_calc: value_start.clone(),
+                wire_analytics: WireAnalytics::default(),
+            });
+        }
+
+        for bit in 0..INPUT_BITS {
+            engine.push(EngineWire {
+                wire_name: WireName::from_char_bit(b'x', bit as u8),
+                ..Default::default()
+            });
+            engine.push(EngineWire {
+                wire_name: WireName::from_char_bit(b'y', bit as u8),
+                ..Default::default()
+            });
+        }
+
+        engine.sort();
+
         Self {
             x,
             y,
             gates,
-            working_logic,
             highest_z_bit,
+            engine,
         }
     }
 
     // use a binary search to find the gate index in the sorted gates vector
-    fn get_gate_index(&self) -> usize {
-        let mut low = 0;
-        let mut high = self.gates.len();
-        while low < high {
-            let mid = (low + high) / 2;
-            if self.gates[mid].0
-                < WireName::from_char_bit(b'z', u8::try_from(self.highest_z_bit).unwrap())
-            {
-                low = mid + 1;
-            } else {
-                high = mid;
+    fn get_gate_index(gates: &Vec<WireNameValue>, wire_name: WireName) -> usize {
+        match wire_name[0] {
+            b'x' => NO_GATES + wire_name.bit().unwrap(),
+            b'y' => NO_GATES + INPUT_BITS + wire_name.bit().unwrap(),
+            b'z' => NO_GATES + INPUT_BITS * 2 + wire_name.bit().unwrap(),
+            _ => {
+                let mut low = 0;
+                let mut high = gates.len();
+                while low < high {
+                    let mid = (low + high) / 2;
+                    match gates[mid].wire_name.cmp(&wire_name) {
+                        std::cmp::Ordering::Less => low = mid + 1,
+                        std::cmp::Ordering::Equal => return mid,
+                        std::cmp::Ordering::Greater => high = mid,
+                    }
+                }
+                low
             }
         }
-        low
     }
 
     pub fn calc(&mut self, x: usize, y: usize) -> usize {

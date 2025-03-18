@@ -5,7 +5,7 @@ use std::fmt::Debug;
 
 use std::ops::Deref;
 
-#[derive(PartialEq, Copy, Clone, Hash, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Copy, Clone, Hash, Eq, PartialOrd, Ord, Default)]
 pub struct WireName([u8; 3]);
 
 impl Deref for WireName {
@@ -49,13 +49,19 @@ impl WireName {
 pub struct WireValuePayload(pub bool, pub WireAnalytics);
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
-pub enum WireValue {
-    Value(WireValuePayload),
+pub enum WireValue<T> {
+    Value(bool),
     Connection {
-        input1: WireName,
-        input2: WireName,
+        input1: T,
+        input2: T,
         operation: Operation,
     },
+}
+
+impl<T> Default for WireValue<T> {
+    fn default() -> Self {
+        Self::Value(false)
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Default, Copy, PartialOrd, Ord)]
