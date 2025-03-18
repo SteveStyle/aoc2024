@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::WaitTimeoutResult};
+use std::{collections::HashMap, fmt::Debug, ops::Deref};
 
 use wire_helpers::{WireAnalytics, WireName, WireValue, WireValuePayload};
 
@@ -29,20 +29,22 @@ struct WireNameValue {
     wire_name: WireName,
     wire_value: WireValue<WireName>,
 }
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct LogicMaster {
     x: usize,
     y: usize,
-    gates: Vec<WireNameValue>,
+    gates: [WireName; NO_GATES],
+    // gates: Vec<WireNameValue>,
     highest_z_bit: usize,
-    engine: Vec<EngineWire>,
+    engine: [EngineWire; NO_GATES + 2 * INPUT_BITS],
+    // engine: Vec<EngineWire>,
 }
 
 impl LogicMaster {
     pub fn new(input: &str) -> Self {
         let mut x = 0;
         let mut y = 0;
-        let mut gates = Vec::with_capacity(NO_GATES + OUTPUT_BITS);
+        let mut gates_v = Vec::with_capacity(NO_GATES + OUTPUT_BITS);
 
         let (input_values, input_gates) = input.split_once("\n\n").unwrap();
 
@@ -80,7 +82,7 @@ impl LogicMaster {
             if output[0] == b'z' {
                 highest_z_bit = highest_z_bit.max(output.bit().unwrap());
             }
-            gates.push(WireNameValue {
+            gates_v.push(WireNameValue {
                 wire_name: output,
                 wire_value: WireValue::Connection {
                     input1,
@@ -90,14 +92,18 @@ impl LogicMaster {
             });
         }
 
-        gates.sort();
+        gates_v.sort();
 
-        let mut engine = Vec::with_capacity(NO_GATES + 2 * INPUT_BITS + OUTPUT_BITS);
+        let gates: [WireNameValue; NO_GATES] = [Default::default(); NO_GATES];
+        gates.copy_from_slice(&gates_v);
+
+        let mut engine = [EngineWire::default(); NO_GATES + 2 * INPUT_BITS];
         for &WireNameValue {
             wire_name,
             wire_value,
-        } in &gates
+        } in &gates_v
         {
+            let engine_idx = Self::get_gate_index(&gates_v, wire_name);
             let value_start = match wire_value {
                 WireValue::Value(b) => WireValue::Value(b),
                 WireValue::Connection {
@@ -105,28 +111,30 @@ impl LogicMaster {
                     input2,
                     operation,
                 } => WireValue::Connection {
-                    input1: Self::get_gate_index(&gates, input1),
-                    input2: Self::get_gate_index(&gates, input2),
+                    input1: Self::get_gate_index(&gates_v, input1),
+                    input2: Self::get_gate_index(&gates_v, input2),
                     operation,
                 },
             };
-            engine.push(EngineWire {
+            engine[engine_idx] = EngineWire {
                 wire_name,
                 value_start,
                 value_calc: value_start.clone(),
                 wire_analytics: WireAnalytics::default(),
-            });
+            };
         }
 
         for bit in 0..INPUT_BITS {
-            engine.push(EngineWire {
-                wire_name: WireName::from_char_bit(b'x', bit as u8),
+            let wire_name = WireName::from_char_bit(b'x', bit as u8);
+            engine[Self::get_gate_index(&gates_v, wire_name)] = EngineWire {
+                wire_name,
                 ..Default::default()
-            });
-            engine.push(EngineWire {
-                wire_name: WireName::from_char_bit(b'y', bit as u8),
+            };
+            let wire_name = WireName::from_char_bit(b'y', bit as u8);
+            engine[Self::get_gate_index(&gates_v, wire_name)] = EngineWire {
+                wire_name,
                 ..Default::default()
-            });
+            };
         }
 
         engine.sort();
@@ -134,7 +142,7 @@ impl LogicMaster {
         Self {
             x,
             y,
-            gates,
+            gates: gates_v,
             highest_z_bit,
             engine,
         }
@@ -145,7 +153,7 @@ impl LogicMaster {
         match wire_name[0] {
             b'x' => NO_GATES + wire_name.bit().unwrap(),
             b'y' => NO_GATES + INPUT_BITS + wire_name.bit().unwrap(),
-            b'z' => NO_GATES + INPUT_BITS * 2 + wire_name.bit().unwrap(),
+            // b'z' => NO_GATES + INPUT_BITS * 2 + wire_name.bit().unwrap(),
             _ => {
                 let mut low = 0;
                 let mut high = gates.len();
