@@ -10,7 +10,7 @@ pub struct WireName([u8; 3]);
 
 impl Default for WireName {
     fn default() -> Self {
-        Self(Default::default())
+        WireName([b'w', b'z' + 1, 0])
     }
 }
 
@@ -32,7 +32,8 @@ impl WireName {
     pub(crate) fn from_slice(slice: &[u8]) -> Self {
         Self([slice[0], slice[1], slice[2]])
     }
-    pub fn from_char_bit(start_char: u8, bit: u8) -> Self {
+    pub fn from_char_bit(start_char: u8, bit: usize) -> Self {
+        let bit = bit as u8;
         let mut name = [0; 3];
         name[0] = start_char;
         name[1] = bit / 10 + b'0';
@@ -51,8 +52,6 @@ impl WireName {
         }
     }
 }
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Default, Clone, Copy)]
-pub struct WireValuePayload(pub bool, pub WireAnalytics);
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
 pub enum WireValue<T> {

@@ -1,6 +1,6 @@
 // #![allow(dead_code, unused)]
 
-use logic::LogicMaster;
+use logic::Logic;
 use stephen_morris_utils::timer::time;
 const INPUT: &str = include_str!("input.txt");
 
@@ -67,7 +67,7 @@ tnw OR pbm -> gnj";
 mod logic;
 
 fn main() {
-    let mut lm = time(|| LogicMaster::new(INPUT), "Logic");
+    let mut lm = time(|| Logic::new(INPUT), "Logic");
     let output = time(|| lm.eval_output(), "eval_all");
 
     lm.print_duration();
