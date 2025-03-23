@@ -43,7 +43,7 @@ impl WireName {
     pub fn as_string(&self) -> String {
         self.0.iter().map(|b| *b as char).collect()
     }
-    pub fn bit(&self) -> Option<usize> {
+    pub fn bit_index(&self) -> Option<usize> {
         match self[0] {
             b'x' | b'y' | b'z' => {
                 Some((self.0[1] - b'0') as usize * 10 + (self.0[2] - b'0') as usize)
@@ -90,7 +90,7 @@ impl GateFlags {
     pub fn set(&mut self, n: usize) {
         if n < 128 {
             self.0[1] |= 1 << n;
-        } else {
+        } else if n < 256 {
             self.0[0] |= 1 << (n % 128);
         }
     }
@@ -110,6 +110,12 @@ impl GateFlags {
     }
     pub fn merge(&self, other: &Self) -> GateFlags {
         GateFlags([self.0[0] | other.0[0], self.0[1] | other.0[1]])
+    }
+    pub fn as_binary_string(&self) -> String {
+        format!("{:0128b}{:0128b}", self.0[0], self.0[1])
+    }
+    pub(crate) fn is_empty(&self) -> bool {
+        self.0[0] == 0 && self.0[1] == 0
     }
 }
 
@@ -180,6 +186,6 @@ mod tests {
     fn test_level() {
         let wn = WireName::from_char_bit(b'x', 1);
         assert_eq!(wn.as_string(), "x01");
-        assert_eq!(wn.bit(), Some(1));
+        assert_eq!(wn.bit_index(), Some(1));
     }
 }

@@ -65,6 +65,7 @@ tgd XOR rvg -> z12
 tnw OR pbm -> gnj";
 
 mod logic;
+mod logic_tester;
 
 fn main() {
     let mut lm = time(|| Logic::new(INPUT), "Logic");
