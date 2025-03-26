@@ -73,23 +73,23 @@ impl RegionMap {
                 area: 0,
                 perimeter: 0
             };
-            self.no_regions as usize
+            self.no_regions
         ];
 
         for (point, &region_id) in &self.regions {
             if let Some(region_id) = region_id {
-                region_counts[region_id as usize].area += 1;
+                region_counts[region_id].area += 1;
 
                 for (neighbour, &neighbour_region_id) in self.regions.orthogonal_neighbors(point) {
                     if neighbour_region_id != Some(region_id) {
-                        region_counts[region_id as usize].perimeter += 1;
+                        region_counts[region_id].perimeter += 1;
                     }
                 }
                 if point.x == 0 || point.x == self.grid.width - 1 {
-                    region_counts[region_id as usize].perimeter += 1;
+                    region_counts[region_id].perimeter += 1;
                 }
                 if point.y == 0 || point.y == self.grid.height - 1 {
-                    region_counts[region_id as usize].perimeter += 1;
+                    region_counts[region_id].perimeter += 1;
                 }
             }
         }

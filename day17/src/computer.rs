@@ -348,7 +348,7 @@ impl Computer {
         }
         let mut target = self.program.instructions.clone();
         target.reverse();
-        get_next_digit(self, 0, &mut target).unwrap()
+        get_next_digit(self, 0, &target).unwrap()
     }
 }
 

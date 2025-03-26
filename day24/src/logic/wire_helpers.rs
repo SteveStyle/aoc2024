@@ -6,7 +6,7 @@ use std::fmt::Debug;
 use std::ops::Deref;
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, PartialOrd, Ord)]
-pub struct WireName([u8; 3]);
+pub struct WireName(pub [u8; 3]);
 
 impl Default for WireName {
     fn default() -> Self {
@@ -84,7 +84,7 @@ impl WireAnalytics {
 
 // a set of bits indicating whether gate n is included in a set
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct GateFlags([u128; 2]);
+pub struct GateFlags(pub [u128; 2]);
 
 impl GateFlags {
     pub fn set(&mut self, n: usize) {

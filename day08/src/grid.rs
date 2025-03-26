@@ -50,7 +50,7 @@ impl<T: Clone + Default + PartialEq> Grid<T> {
     }
 
     pub fn get_pos(&self, pos: Position<usize>) -> &T {
-        &self.get(pos.y, pos.x)
+        self.get(pos.y, pos.x)
     }
 
     pub fn get_mut_pos(&mut self, pos: Position<usize>) -> &mut T {
