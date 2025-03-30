@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::fmt::Debug;
 
 use wire_helpers::{GateFlags, WireAnalytics, WireName, WireValue};
@@ -7,7 +8,8 @@ pub const OUTPUT_BITS: usize = INPUT_BITS + 1;
 pub const NO_GATES: usize = 313 - 91;
 pub const X_OFFSET: usize = NO_GATES;
 pub const Y_OFFSET: usize = NO_GATES + INPUT_BITS;
-pub const Z_OFFSET: usize = NO_GATES + 2 * INPUT_BITS;
+pub const Z_OFFSET: usize = NO_GATES + INPUT_BITS * 2;
+pub const NO_WIRES: usize = NO_GATES + INPUT_BITS * 2 + OUTPUT_BITS;
 pub mod wire_helpers;
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
@@ -18,75 +20,71 @@ pub enum Operation {
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct EngineWire {
+struct EngineWire<const N: usize> {
     wire_name: WireName,
-    value_start: WireValue<usize>,
-    value_calc: WireValue<usize>,
+    value_start: WireValue<usize, N>,
+    value_calc: WireValue<usize, N>,
     wire_analytics: WireAnalytics,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct WireNameValue {
+struct WireNameValue<const N: usize> {
     wire_name: WireName,
-    wire_value: WireValue<WireName>,
+    wire_value: WireValue<WireName, N>,
 }
 #[derive(Debug, Clone, Copy)]
-pub struct Logic {
-    x: usize,
-    y: usize,
-    gates: [WireNameValue; NO_GATES],
+pub struct Logic<const NO_CASES: usize> {
+    cases: [(usize, usize); NO_CASES],
+    gates: [WireNameValue<NO_CASES>; NO_GATES],
     highest_z_bit: usize,
-    engine: [EngineWire; NO_GATES + 2 * INPUT_BITS + OUTPUT_BITS],
+    engine: [EngineWire<NO_CASES>; NO_WIRES],
 }
 
-const DEFAULT_WIRE_NAME: WireName = WireName([0; 3]);
-const DEFAULT_WIRE_VALUE: WireValue<usize> = WireValue::Value(false);
-const DEFAULT_GATE_FLAGS: GateFlags = GateFlags([0, 2]);
-const DEFAULT_WIRE_ANALYTICS: WireAnalytics = WireAnalytics {
-    gates: DEFAULT_GATE_FLAGS,
-};
-const DEFAULT_WIRE_NAME_VALUE: WireNameValue = WireNameValue {
-    wire_name: DEFAULT_WIRE_NAME,
-    wire_value: WireValue::Value(false),
-};
-const DEFAULT_ENGINE_WIRE: EngineWire = EngineWire {
-    wire_name: DEFAULT_WIRE_NAME,
-    value_start: DEFAULT_WIRE_VALUE,
-    value_calc: DEFAULT_WIRE_VALUE,
-    wire_analytics: DEFAULT_WIRE_ANALYTICS,
-};
-pub const DEFAULT_LOGIC: Logic = Logic {
-    x: 0,
-    y: 0,
-    gates: [DEFAULT_WIRE_NAME_VALUE; NO_GATES],
-    highest_z_bit: 0,
-    engine: [DEFAULT_ENGINE_WIRE; NO_GATES + 2 * INPUT_BITS + OUTPUT_BITS],
-};
-
-impl Logic {
-    pub fn new_uninitialised() -> Self {
-        DEFAULT_LOGIC
-    }
-    pub fn initialise(&mut self, input: &str) -> &mut Self {
-        let mut x = 0;
-        let mut y = 0;
-
+impl Logic<1> {
+    pub fn new(input: &str) -> Self {
         let (input_values, input_gates) = input.split_once("\n\n").unwrap();
 
+        let mut given_x = 0;
+        let mut given_y = 0;
         for line in input_values.lines() {
             let bytes = line.as_bytes();
             let bit_index = WireName::from_slice(&bytes[0..3]).bit_index().unwrap();
             let bit_value = bytes[5] == b'1';
             if bit_value {
                 if bytes[0] == b'x' {
-                    x |= 1 << bit_index
+                    given_x |= 1 << bit_index
                 } else {
-                    y |= 1 << bit_index
+                    given_y |= 1 << bit_index
                 }
             }
         }
 
+        let cases = [(given_x, given_y)];
+
+        Self::new_with_cases(input, cases)
+    }
+    pub fn calc(input: &str, x: usize, y: usize) -> usize {
+        let mut logic = Logic::new_with_cases(input, [(x, y)]);
+        // eval the z gates, and collect as an integer using the bit value to detemine the binary columns
+        let mut z = 0;
+        for bit_index in 0..=logic.highest_z_bit {
+            let wire_name = WireName::from_char_bit(b'z', bit_index);
+            let idx = Self::get_gate_index(&logic.gates, wire_name);
+            let (value, _) = logic.eval(idx);
+            if value[0] {
+                z |= 1 << bit_index;
+            }
+        }
+        z
+    }
+}
+
+impl<const NO_CASES: usize> Logic<NO_CASES> {
+    pub fn new_with_cases(input: &str, cases: [(usize, usize); NO_CASES]) -> Self {
+        let (input_values, input_gates) = input.split_once("\n\n").unwrap();
+
         let mut gates = [WireNameValue::default(); NO_GATES];
+
         let mut highest_z_bit = 0;
         for (idx, line) in input_gates.lines().enumerate() {
             let mut bytes = line.as_bytes();
@@ -120,7 +118,7 @@ impl Logic {
         }
         gates.sort();
 
-        let mut engine = [EngineWire::default(); NO_GATES + 2 * INPUT_BITS + OUTPUT_BITS];
+        let mut engine = [EngineWire::default(); NO_WIRES];
         for &WireNameValue {
             wire_name,
             wire_value,
@@ -128,7 +126,7 @@ impl Logic {
         {
             let engine_idx = Self::get_gate_index(&gates, wire_name);
             let value_start = match wire_value {
-                WireValue::Value(b) => WireValue::Value(b),
+                WireValue::Value(b) => continue,
                 WireValue::Connection {
                     input1,
                     input2,
@@ -149,14 +147,30 @@ impl Logic {
 
         for bit in 0..INPUT_BITS {
             let wire_name = WireName::from_char_bit(b'x', bit);
+            let value_array: [bool; NO_CASES] = cases
+                .iter()
+                .map(|case| (case.0 & (1 << bit)) != 0)
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap();
             engine[Self::get_gate_index(&gates, wire_name)] = EngineWire {
                 wire_name,
-                ..Default::default()
+                value_start: WireValue::Value(value_array),
+                value_calc: WireValue::Value(value_array),
+                wire_analytics: WireAnalytics::default(),
             };
             let wire_name = WireName::from_char_bit(b'y', bit);
+            let value_array: [bool; NO_CASES] = cases
+                .iter()
+                .map(|case| (case.1 & (1 << bit)) != 0)
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap();
             engine[Self::get_gate_index(&gates, wire_name)] = EngineWire {
                 wire_name,
-                ..Default::default()
+                value_start: WireValue::Value(value_array),
+                value_calc: WireValue::Value(value_array),
+                wire_analytics: WireAnalytics::default(),
             };
         }
 
@@ -170,18 +184,16 @@ impl Logic {
 
         engine.sort();
 
-        *self = Self {
-            x,
-            y,
+        Self {
+            cases,
             gates,
             highest_z_bit,
             engine,
-        };
-        self
+        }
     }
 
     // use a binary search to find the gate index in the sorted gates vector
-    fn get_gate_index(gates: &[WireNameValue], wire_name: WireName) -> usize {
+    fn get_gate_index(gates: &[WireNameValue<NO_CASES>], wire_name: WireName) -> usize {
         match wire_name[0] {
             b'x' => X_OFFSET + wire_name.bit_index().unwrap(),
             b'y' => Y_OFFSET + wire_name.bit_index().unwrap(),
@@ -214,34 +226,7 @@ impl Logic {
         gates_list
     }
 
-    pub fn calc(&mut self, x: usize, y: usize) -> usize {
-        for bit in 0..INPUT_BITS {
-            let x_wire_name = WireName::from_char_bit(b'x', bit);
-            let y_wire_name = WireName::from_char_bit(b'y', bit);
-            let x_idx = Self::get_gate_index(&self.gates, x_wire_name);
-            let y_idx = Self::get_gate_index(&self.gates, y_wire_name);
-            self.engine[x_idx].value_start = WireValue::Value((x & (1 << bit)) != 0);
-            self.engine[y_idx].value_start = WireValue::Value((y & (1 << bit)) != 0);
-        }
-        for engine_wire in &mut self.engine {
-            engine_wire.value_calc = engine_wire.value_start;
-            engine_wire.wire_analytics = WireAnalytics::default();
-        }
-
-        // eval the z gates, and collect as an integer using the bit value to detemine the binary columns
-        let mut z = 0;
-        for bit_index in 0..=self.highest_z_bit {
-            let wire_name = WireName::from_char_bit(b'z', bit_index);
-            let idx = Self::get_gate_index(&self.gates, wire_name);
-            let (value, _) = self.eval(idx);
-            if value {
-                z |= 1 << bit_index;
-            }
-        }
-        z
-    }
-
-    fn eval(&mut self, wire_idx: usize) -> (bool, WireAnalytics) {
+    fn eval(&mut self, wire_idx: usize) -> ([bool; NO_CASES], WireAnalytics) {
         let engine_wire = self.engine[wire_idx];
         let (new_value, new_analytics) = match engine_wire.value_calc {
             WireValue::Value(b) => (b, engine_wire.wire_analytics),
@@ -252,14 +237,22 @@ impl Logic {
             } => {
                 let (input1, wa1) = self.eval(input1);
                 let (input2, wa2) = self.eval(input2);
-                let value = match operation {
-                    Operation::And => input1 & input2,
-                    Operation::Or => input1 | input2,
-                    Operation::Xor => input1 ^ input2,
+                let mut output = input1;
+
+                match operation {
+                    Operation::And => output.iter_mut().zip(input2).for_each(|(i1, i2)| {
+                        *i1 &= i2;
+                    }),
+                    Operation::Or => output.iter_mut().zip(input2).for_each(|(i1, i2)| {
+                        *i1 |= i2;
+                    }),
+                    Operation::Xor => output.iter_mut().zip(input2).for_each(|(i1, i2)| {
+                        *i1 ^= i2;
+                    }),
                 };
                 let mut wire_analytics = wa1.merge(&wa2);
                 wire_analytics.gates.set(wire_idx);
-                (value, wire_analytics)
+                (output, wire_analytics)
             }
         };
         self.engine[wire_idx].value_calc = WireValue::Value(new_value);
@@ -267,9 +260,19 @@ impl Logic {
         self.engine[wire_idx].wire_analytics = new_analytics;
         (new_value, new_analytics)
     }
-
-    pub fn eval_output(&mut self) -> usize {
-        self.calc(self.x, self.y)
+    pub fn eval_output(&mut self) -> [usize; NO_CASES] {
+        let mut output = [0; NO_CASES];
+        for bit_index in 0..=self.highest_z_bit {
+            let wire_name = WireName::from_char_bit(b'z', bit_index);
+            let idx = Self::get_gate_index(&self.gates, wire_name);
+            let (value, _) = self.eval(idx);
+            for case in 0..NO_CASES {
+                if value[case] {
+                    output[case] |= 1 << bit_index;
+                }
+            }
+        }
+        output
     }
 }
 
@@ -279,8 +282,7 @@ mod tests {
     use crate::*;
 
     fn test_wire_analytics(input: &str) {
-        let mut lm = DEFAULT_LOGIC;
-        lm.initialise(input);
+        let mut lm = Logic::<1>::new(input);
         lm.eval_output();
         lm.engine
             .iter()
@@ -306,23 +308,18 @@ mod tests {
     }
     #[test]
     fn test_part1() {
-        let mut lm = DEFAULT_LOGIC;
-        lm.initialise(TESTINPUT);
-        assert_eq!(lm.calc(lm.x, lm.y), 4);
+        let mut lm = Logic::new(TESTINPUT);
+        assert_eq!(lm.eval_output(), [4]);
     }
     #[test]
     fn test_part1_2() {
-        let mut lm = DEFAULT_LOGIC;
-        lm.initialise(TESTINPUT2);
-        assert_eq!(lm.calc(lm.x, lm.y), 2024);
+        let mut lm = Logic::new(TESTINPUT2);
+        assert_eq!(lm.eval_output(), [2024]);
     }
-
-    // ...existing code...
 
     #[test]
     fn test_get_gate_index() {
-        let mut lm = DEFAULT_LOGIC;
-        lm.initialise(TESTINPUT2);
+        let mut lm = Logic::<1>::new(TESTINPUT2);
 
         println!("\ngate array");
 
@@ -330,13 +327,22 @@ mod tests {
         // show the any wire name that does not index itself correctly. Show both the index and the wire name.
         // ignore wire names starting with 'w'.
         // print the wire name and the index if they do not match.
-        for (idx, wire_name) in lm.gates.iter().enumerate() {
-            if wire_name.wire_name[0] != b'w' {
-                let found_idx = Logic::get_gate_index(&lm.gates, wire_name.wire_name);
+        for (
+            idx,
+            EngineWire {
+                wire_name,
+                value_start,
+                value_calc,
+                wire_analytics,
+            },
+        ) in lm.engine.iter().enumerate()
+        {
+            if wire_name[0] != b'w' {
+                let found_idx = Logic::get_gate_index(&lm.gates, *wire_name);
                 if found_idx != idx {
                     println!(
                         "wire name {:?} index {} found index {}",
-                        wire_name.wire_name, idx, found_idx
+                        wire_name, idx, found_idx
                     );
                 }
             }
@@ -382,8 +388,7 @@ mod tests {
 
     #[test]
     fn test_engine_initialization() {
-        let mut lm = DEFAULT_LOGIC;
-        lm.initialise(TESTINPUT);
+        let mut lm = Logic::<1>::new(TESTINPUT);
 
         // Check x wire initialization
         let x0_idx = Logic::get_gate_index(&lm.gates, WireName::from_char_bit(b'x', 0));

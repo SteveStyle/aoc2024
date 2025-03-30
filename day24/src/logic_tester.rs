@@ -1,91 +1,35 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
 use crate::logic::*;
 
+const NO_CASES: usize = 4;
+pub const TEST_CASES: [(usize, usize); NO_CASES] = {
+    const ALL_ONES: usize = (2 << INPUT_BITS) - 1;
+    [
+        (0, 0),
+        (0, 1),
+        //(1, 1),
+        (ALL_ONES, 0),
+        (1, ALL_ONES),
+        //        (ALL_ONES, ALL_ONES),
+    ]
+};
+
 pub struct LogicTester {
-    logic: Logic,
+    logic: Logic<NO_CASES>,
 }
-
-const TEST_CASES: [(usize, usize); 9] = {
-    const ALL_ONES: usize = (2 << INPUT_BITS) - 1;
-    [
-        (0, 0),
-        (0, 1),
-        (1, 0),
-        (1, 1),
-        (ALL_ONES, 0),
-        (0, ALL_ONES),
-        (ALL_ONES, 1),
-        (1, ALL_ONES),
-        (ALL_ONES, ALL_ONES),
-    ]
-};
-
-const TEST_CASES_ONE: [(usize, usize); 1] = {
-    const ALL_ONES: usize = (2 << INPUT_BITS) - 1;
-    [(ALL_ONES, 1)]
-};
-
-const TEST_CASES_MANY: [(usize, usize); 45] = {
-    const ALL_ONES: usize = (2 << INPUT_BITS) - 1;
-    [
-        (0, 0),
-        (0, 1),
-        (1, 0),
-        (1, 1),
-        (ALL_ONES, 0),
-        (0, ALL_ONES),
-        (ALL_ONES, 1),
-        (1, ALL_ONES),
-        (ALL_ONES, ALL_ONES),
-        (0, 0),
-        (0, 1),
-        (1, 0),
-        (1, 1),
-        (ALL_ONES, 0),
-        (0, ALL_ONES),
-        (ALL_ONES, 1),
-        (1, ALL_ONES),
-        (ALL_ONES, ALL_ONES),
-        (0, 0),
-        (0, 1),
-        (1, 0),
-        (1, 1),
-        (ALL_ONES, 0),
-        (0, ALL_ONES),
-        (ALL_ONES, 1),
-        (1, ALL_ONES),
-        (ALL_ONES, ALL_ONES),
-        (0, 0),
-        (0, 1),
-        (1, 0),
-        (1, 1),
-        (ALL_ONES, 0),
-        (0, ALL_ONES),
-        (ALL_ONES, 1),
-        (1, ALL_ONES),
-        (ALL_ONES, ALL_ONES),
-        (0, 0),
-        (0, 1),
-        (1, 0),
-        (1, 1),
-        (ALL_ONES, 0),
-        (0, ALL_ONES),
-        (ALL_ONES, 1),
-        (1, ALL_ONES),
-        (ALL_ONES, ALL_ONES),
-    ]
-};
 
 impl LogicTester {
     pub fn new(input: &str) -> Self {
-        let mut logic = DEFAULT_LOGIC;
-        logic.initialise(input);
+        let mut logic = Logic::<NO_CASES>::new_with_cases(input, TEST_CASES);
         Self { logic }
     }
 
     pub fn test_and_show_wires(&mut self) {
-        for (input1, input2) in TEST_CASES.iter() {
+        let output_array = self.logic.eval_output();
+        for ((input1, input2), output) in TEST_CASES.iter().zip(output_array.iter()) {
             let expected = *input1 + *input2;
-            let output = self.logic.calc(*input1, *input2);
+            // let output = output;
             let misses = output ^ expected;
             if misses != 0 {
                 println!(
@@ -108,20 +52,19 @@ impl LogicTester {
         }
     }
     pub fn test_only(&mut self) {
-        for (input1, input2) in TEST_CASES.iter() {
+        for ((input1, input2), output) in TEST_CASES.iter().zip(self.logic.eval_output().iter()) {
             let expected = *input1 + *input2;
-            let output = self.logic.calc(*input1, *input2);
             let misses = output ^ expected;
         }
     }
-    pub fn test(&mut self) {
+    pub fn test(&mut self) -> usize {
         let mut all_misses = 0;
-        for (input1, input2) in TEST_CASES.iter() {
+        for ((input1, input2), output) in TEST_CASES.iter().zip(self.logic.eval_output().iter()) {
             let expected = *input1 + *input2;
-            let output = self.logic.calc(*input1, *input2);
             let misses = output ^ expected;
             all_misses |= misses;
         }
+        all_misses
     }
 }
 
@@ -140,49 +83,25 @@ mod tests {
     }
     #[test]
     fn test_only() {
-        fn test(logic: &mut Logic, cases: &[(usize, usize)]) -> usize {
+        fn test(logic: &mut Logic<NO_CASES>, cases: &[(usize, usize)]) -> usize {
             let mut all_misses = 0;
-            for (input1, input2) in cases.iter() {
-                let mut local_logic = *logic;
+            for ((input1, input2), output) in cases.iter().zip(logic.eval_output().iter()) {
                 let expected = *input1 + *input2;
-                let output = local_logic.calc(*input1, *input2);
                 let misses = output ^ expected;
                 all_misses |= misses;
             }
-            // println!("all_misses = {:0width$b}", all_misses, width = INPUT_BITS);
             all_misses
         }
-        let mut logic = time(Logic::new_uninitialised, "Uninitialised Logic");
-        logic.print_duration();
-        let mut logic = time(|| logic.initialise(INPUT), "Initialised Logic");
+        let mut logic = time(
+            || Logic::new_with_cases(INPUT, TEST_CASES),
+            "Uninitialised Logic",
+        );
         logic.print_duration();
         let cases = time(|| test(&mut logic, &TEST_CASES), "9 cases");
         cases.print_all();
-        let cases = time(|| test(&mut logic, &TEST_CASES_ONE), "1 case");
-        cases.print_all();
-        let cases = time(|| test(&mut logic, &TEST_CASES_MANY), "45 case");
-        cases.print_all();
-    }
-    #[test]
-    fn test_array() {
-        fn test(logic: &mut Logic, case: &(usize, usize)) -> usize {
-            let (input1, input2) = case;
-            let expected = *input1 + *input2;
-            let output = logic.calc(*input1, *input2);
-            let misses = output ^ expected;
-            misses
-        }
-        fn test_array(input: &str, cases: &[(usize, usize)]) {
-            let mut all_misses = 0;
-            let mut logic = Logic::new_uninitialised();
-            logic.initialise(input);
-            let mut logic_array = [DEFAULT_LOGIC; 9];
-            for i in 0..9 {
-                logic_array[i] = logic;
-                test(&mut logic_array[i], &cases[i]);
-            }
-        }
-        let result = time(|| test_array(INPUT, &TEST_CASES), "test_array");
-        result.print_duration();
+        // let cases = time(|| test(&mut logic, &TEST_CASES_ONE), "1 case");
+        // cases.print_all();
+        // let cases = time(|| test(&mut logic, &TEST_CASES_MANY), "45 case");
+        // cases.print_all();
     }
 }

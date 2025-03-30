@@ -54,8 +54,8 @@ impl WireName {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
-pub enum WireValue<T> {
-    Value(bool),
+pub enum WireValue<T, const NO_CASES: usize> {
+    Value([bool; NO_CASES]),
     Connection {
         input1: T,
         input2: T,
@@ -63,9 +63,9 @@ pub enum WireValue<T> {
     },
 }
 
-impl<T> Default for WireValue<T> {
+impl<T, const NO_CASES: usize> Default for WireValue<T, NO_CASES> {
     fn default() -> Self {
-        Self::Value(false)
+        Self::Value([false; NO_CASES])
     }
 }
 

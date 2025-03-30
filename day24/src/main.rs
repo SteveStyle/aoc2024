@@ -1,6 +1,6 @@
-// #![allow(dead_code, unused)]
+#![allow(dead_code, unused)]
 
-use logic::{DEFAULT_LOGIC, Logic};
+use logic::Logic;
 use stephen_morris_utils::timer::time;
 const INPUT: &str = include_str!("input.txt");
 
@@ -68,14 +68,7 @@ mod logic;
 mod logic_tester;
 
 fn main() {
-    let mut lm = time(
-        || {
-            let mut logic = DEFAULT_LOGIC;
-            logic.initialise(INPUT);
-            logic
-        },
-        "Logic",
-    );
+    let mut lm = time(|| Logic::new(INPUT), "Logic");
     let output = time(|| lm.eval_output(), "eval_all");
 
     lm.print_duration();
