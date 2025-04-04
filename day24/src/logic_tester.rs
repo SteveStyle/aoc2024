@@ -2,19 +2,20 @@
 #![allow(unused_variables)]
 use crate::logic::*;
 
-const NO_CASES: usize = 4;
+const NO_CASES: usize = 6;
 pub const TEST_CASES: [(usize, usize); NO_CASES] = {
     const ALL_ONES: usize = (2 << INPUT_BITS) - 1;
     [
         (0, 0),
         (0, 1),
-        //(1, 1),
+        (1, 1),
         (ALL_ONES, 0),
         (1, ALL_ONES),
-        //        (ALL_ONES, ALL_ONES),
+        (ALL_ONES, ALL_ONES),
     ]
 };
 
+#[derive(Debug, Copy, Clone)]
 pub struct LogicTester {
     logic: Logic<NO_CASES>,
 }
@@ -77,8 +78,13 @@ mod tests {
 
     #[test]
     fn test_logic() {
-        let mut tester = LogicTester::new(INPUT);
-        let result = time(|| tester.test_and_show_wires(), "test_logic");
+        let mut tester = time(|| LogicTester::new(INPUT), "test_logic::LogicTester");
+        tester.print_duration();
+
+        let result = time(
+            || tester.test_and_show_wires(),
+            "test_logic::test_and_show_wires",
+        );
         result.print_duration();
     }
     #[test]
@@ -94,14 +100,13 @@ mod tests {
         }
         let mut logic = time(
             || Logic::new_with_cases(INPUT, TEST_CASES),
-            "Uninitialised Logic",
+            "test_only::Logic",
         );
         logic.print_duration();
-        let cases = time(|| test(&mut logic, &TEST_CASES), "9 cases");
+        let cases = time(
+            || test(&mut logic, &TEST_CASES),
+            &format!("{} cases", NO_CASES),
+        );
         cases.print_all();
-        // let cases = time(|| test(&mut logic, &TEST_CASES_ONE), "1 case");
-        // cases.print_all();
-        // let cases = time(|| test(&mut logic, &TEST_CASES_MANY), "45 case");
-        // cases.print_all();
     }
 }

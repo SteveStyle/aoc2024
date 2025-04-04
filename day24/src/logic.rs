@@ -289,36 +289,43 @@ mod tests {
             .filter(|ew| ew.wire_name[0] == b'z' && !ew.wire_analytics.gates.is_empty())
             .for_each(|engine_wire| {
                 println!(
-                    "{:?} {:?}",
+                    "test_wire_analytics::{:?} {:?}",
                     engine_wire.wire_name,
                     engine_wire.wire_analytics.gates.as_binary_string()
                 );
                 // use get_gates to get the wire names for the gate indexes set in the gate flags
                 let gates = lm.get_gates(Logic::get_gate_index(&lm.gates, engine_wire.wire_name));
                 for gate in gates {
-                    println!("  {:?}", gate);
+                    print!("  {:?}", gate);
                 }
+                println!();
             });
     }
 
     #[test]
     fn test_new() {
-        println!("\nTest new");
+        println!("\ntest_new::starting");
         test_wire_analytics(TESTINPUT2);
+        println!("\ntest_new::ending");
     }
     #[test]
     fn test_part1() {
+        println!("\ntest_part1::starting");
         let mut lm = Logic::new(TESTINPUT);
         assert_eq!(lm.eval_output(), [4]);
+        println!("\ntest_part1::ending");
     }
     #[test]
     fn test_part1_2() {
+        println!("\ntest_part1_2::starting");
         let mut lm = Logic::new(TESTINPUT2);
         assert_eq!(lm.eval_output(), [2024]);
+        println!("\ntest_part1_2::ending");
     }
 
     #[test]
     fn test_get_gate_index() {
+        println!("\ntest_get_gate_index::starting");
         let mut lm = Logic::<1>::new(TESTINPUT2);
 
         println!("\ngate array");
@@ -381,13 +388,15 @@ mod tests {
         );
 
         // Test gate wire indices (these should use binary search)
-        // Note: Exact indices will depend on your test input gates
+        // Note: Exact indices will depend on the test input gates
         let gate_wire = lm.gates[0].wire_name;
         assert_eq!(Logic::get_gate_index(&lm.gates, gate_wire), 0);
+        println!("test_get_gate_index::ending");
     }
 
     #[test]
     fn test_engine_initialization() {
+        println!("\ntest_engine_initialization::starting");
         let mut lm = Logic::<1>::new(TESTINPUT);
 
         // Check x wire initialization
@@ -397,5 +406,6 @@ mod tests {
         // Check y wire initialization
         let y0_idx = Logic::get_gate_index(&lm.gates, WireName::from_char_bit(b'y', 0));
         assert_eq!(lm.engine[y0_idx].wire_name[0], b'y');
+        println!("test_engine_initialization::ending");
     }
 }
