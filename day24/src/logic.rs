@@ -3,6 +3,8 @@ use std::fmt::Debug;
 
 use wire_helpers::{GateFlags, WireAnalytics, WireName, WireValue};
 
+use crate::bit_array::BitArray;
+
 pub const INPUT_BITS: usize = 45;
 pub const OUTPUT_BITS: usize = INPUT_BITS + 1;
 pub const NO_GATES: usize = 313 - 91;
@@ -66,16 +68,16 @@ impl Logic<1> {
     pub fn calc(input: &str, x: usize, y: usize) -> usize {
         let mut logic = Logic::new_with_cases(input, [(x, y)]);
         // eval the z gates, and collect as an integer using the bit value to detemine the binary columns
-        let mut z = 0;
+        let mut z = BitArray::new();
         for bit_index in 0..=logic.highest_z_bit {
             let wire_name = WireName::from_char_bit(b'z', bit_index);
-            let idx = Self::get_gate_index(&logic.gates, wire_name);
-            let (value, _) = logic.eval(idx);
-            if value[0] {
-                z |= 1 << bit_index;
+            let wire_idx = Self::get_gate_index(&logic.gates, wire_name);
+            let (z_nth_bit, _) = logic.eval(wire_idx);
+            if z_nth_bit.get(bit_index) {
+                z.set(bit_index);
             }
         }
-        z
+        z.0 as usize
     }
 }
 
@@ -147,29 +149,29 @@ impl<const NO_CASES: usize> Logic<NO_CASES> {
 
         for bit in 0..INPUT_BITS {
             let wire_name = WireName::from_char_bit(b'x', bit);
-            let value_array: [bool; NO_CASES] = cases
-                .iter()
-                .map(|case| (case.0 & (1 << bit)) != 0)
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap();
+            let mut bit_indexed_by_cases = BitArray::new();
+            // we want a u64 array of 0s and 1s for each bit up to INPUT_BITS.
+            // the bit index in the u64 is the case number
+            for (case_idx, case) in cases.iter().enumerate() {
+                bit_indexed_by_cases.set_value(case_idx, (case.0 & (1 << bit)) != 0);
+            }
             engine[Self::get_gate_index(&gates, wire_name)] = EngineWire {
                 wire_name,
-                value_start: WireValue::Value(value_array),
-                value_calc: WireValue::Value(value_array),
+                value_start: WireValue::Value(bit_indexed_by_cases),
+                value_calc: WireValue::Value(bit_indexed_by_cases),
                 wire_analytics: WireAnalytics::default(),
             };
             let wire_name = WireName::from_char_bit(b'y', bit);
-            let value_array: [bool; NO_CASES] = cases
-                .iter()
-                .map(|case| (case.1 & (1 << bit)) != 0)
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap();
+            let mut bit_by_cases_array = BitArray::new();
+            // we want a u64 array of 0s and 1s for each bit up to INPUT_BITS.
+            // the bit index in the u64 is the case number
+            for (case_idx, case) in cases.iter().enumerate() {
+                bit_by_cases_array.set_value(case_idx, (case.1 & (1 << bit)) != 0);
+            }
             engine[Self::get_gate_index(&gates, wire_name)] = EngineWire {
                 wire_name,
-                value_start: WireValue::Value(value_array),
-                value_calc: WireValue::Value(value_array),
+                value_start: WireValue::Value(bit_by_cases_array),
+                value_calc: WireValue::Value(bit_by_cases_array),
                 wire_analytics: WireAnalytics::default(),
             };
         }
@@ -226,7 +228,7 @@ impl<const NO_CASES: usize> Logic<NO_CASES> {
         gates_list
     }
 
-    fn eval(&mut self, wire_idx: usize) -> ([bool; NO_CASES], WireAnalytics) {
+    fn eval(&mut self, wire_idx: usize) -> (BitArray, WireAnalytics) {
         let engine_wire = self.engine[wire_idx];
         let (new_value, new_analytics) = match engine_wire.value_calc {
             WireValue::Value(b) => (b, engine_wire.wire_analytics),
@@ -237,18 +239,11 @@ impl<const NO_CASES: usize> Logic<NO_CASES> {
             } => {
                 let (input1, wa1) = self.eval(input1);
                 let (input2, wa2) = self.eval(input2);
-                let mut output = input1;
 
-                match operation {
-                    Operation::And => output.iter_mut().zip(input2).for_each(|(i1, i2)| {
-                        *i1 &= i2;
-                    }),
-                    Operation::Or => output.iter_mut().zip(input2).for_each(|(i1, i2)| {
-                        *i1 |= i2;
-                    }),
-                    Operation::Xor => output.iter_mut().zip(input2).for_each(|(i1, i2)| {
-                        *i1 ^= i2;
-                    }),
+                let output = match operation {
+                    Operation::And => input1 & input2,
+                    Operation::Or => input1 | input2,
+                    Operation::Xor => input1 ^ input2,
                 };
                 let mut wire_analytics = wa1.merge(&wa2);
                 wire_analytics.gates.set(wire_idx);
@@ -261,18 +256,18 @@ impl<const NO_CASES: usize> Logic<NO_CASES> {
         (new_value, new_analytics)
     }
     pub fn eval_output(&mut self) -> [usize; NO_CASES] {
-        let mut output = [0; NO_CASES];
+        let mut answer_for_each_case = [0; NO_CASES];
         for bit_index in 0..=self.highest_z_bit {
             let wire_name = WireName::from_char_bit(b'z', bit_index);
-            let idx = Self::get_gate_index(&self.gates, wire_name);
-            let (value, _) = self.eval(idx);
-            for case in 0..NO_CASES {
-                if value[case] {
-                    output[case] |= 1 << bit_index;
+            let index_for_this_wire = Self::get_gate_index(&self.gates, wire_name);
+            let (bits_for_this_wire_for_each_case, _) = self.eval(index_for_this_wire);
+            for (case, answer) in answer_for_each_case.iter_mut().enumerate() {
+                if bits_for_this_wire_for_each_case.get(case) {
+                    *answer |= 1 << bit_index;
                 }
             }
         }
-        output
+        answer_for_each_case
     }
 }
 

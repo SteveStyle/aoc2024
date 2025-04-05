@@ -1,3 +1,5 @@
+use crate::bit_array::BitArray;
+
 #[allow(dead_code)]
 use super::Operation;
 
@@ -55,7 +57,7 @@ impl WireName {
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
 pub enum WireValue<T, const NO_CASES: usize> {
-    Value([bool; NO_CASES]),
+    Value(BitArray),
     Connection {
         input1: T,
         input2: T,
@@ -65,7 +67,7 @@ pub enum WireValue<T, const NO_CASES: usize> {
 
 impl<T, const NO_CASES: usize> Default for WireValue<T, NO_CASES> {
     fn default() -> Self {
-        Self::Value([false; NO_CASES])
+        Self::Value(BitArray::new())
     }
 }
 

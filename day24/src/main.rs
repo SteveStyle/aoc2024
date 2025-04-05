@@ -64,6 +64,7 @@ hwm AND bqk -> z03
 tgd XOR rvg -> z12
 tnw OR pbm -> gnj";
 
+mod bit_array;
 mod logic;
 mod logic_tester;
 
