@@ -5,7 +5,7 @@ use super::Operation;
 
 use std::fmt::Debug;
 
-use std::ops::Deref;
+use std::ops::{BitOrAssign, Deref, Not};
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, PartialOrd, Ord)]
 pub struct WireName(pub [u8; 3]);
@@ -73,22 +73,36 @@ impl<T, const NO_CASES: usize> Default for WireValue<T, NO_CASES> {
 
 #[derive(Clone, PartialEq, Eq, Debug, Default, Copy, PartialOrd, Ord)]
 pub(crate) struct WireAnalytics {
-    pub(crate) gates: GateFlags,
+    pub(crate) gate_dependencies: GateDependencies,
 }
 
 impl WireAnalytics {
     pub fn merge(&self, other: &Self) -> Self {
         Self {
-            gates: self.gates.merge(&other.gates),
+            gate_dependencies: self.gate_dependencies.merge(&other.gate_dependencies),
         }
     }
 }
 
 // a set of bits indicating whether gate n is included in a set
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct GateFlags(pub [u128; 2]);
+pub struct GateDependencies(pub [u128; 2]);
 
-impl GateFlags {
+impl Not for GateDependencies {
+    type Output = Self;
+    fn not(self) -> Self::Output {
+        Self([!self.0[0], !self.0[1]])
+    }
+}
+
+impl BitOrAssign for GateDependencies {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0[0] |= rhs.0[0];
+        self.0[1] |= rhs.0[1];
+    }
+}
+
+impl GateDependencies {
     pub fn set(&mut self, n: usize) {
         if n < 128 {
             self.0[1] |= 1 << n;
@@ -110,8 +124,8 @@ impl GateFlags {
             self.0[0] & (1 << (n % 128)) != 0
         }
     }
-    pub fn merge(&self, other: &Self) -> GateFlags {
-        GateFlags([self.0[0] | other.0[0], self.0[1] | other.0[1]])
+    pub fn merge(&self, other: &Self) -> GateDependencies {
+        GateDependencies([self.0[0] | other.0[0], self.0[1] | other.0[1]])
     }
     pub fn as_binary_string(&self) -> String {
         format!("{:0128b}{:0128b}", self.0[0], self.0[1])
@@ -124,12 +138,12 @@ impl GateFlags {
 #[cfg(test)]
 mod tests {
     //test GateFlags
-    use super::{GateFlags, WireName};
+    use super::{GateDependencies, WireName};
 
-    fn flags_from_ints(a: u128, b: u128) -> GateFlags {
-        GateFlags([a, b])
+    fn flags_from_ints(a: u128, b: u128) -> GateDependencies {
+        GateDependencies([a, b])
     }
-    fn ints_from_flags(flags: GateFlags) -> (u128, u128) {
+    fn ints_from_flags(flags: GateDependencies) -> (u128, u128) {
         (flags.0[0], flags.0[1])
     }
 
@@ -147,7 +161,7 @@ mod tests {
         let (a, b) = ints_from_flags(flags);
         assert_eq!([a, b], [123, 456]);
 
-        let mut flags = GateFlags::default();
+        let mut flags = GateDependencies::default();
         assert_eq!(ints_from_flags(flags), (0, 0));
         flags.set(0);
         assert!(flags.get(0));

@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-use crate::logic::*;
+use crate::logic::{
+    wire_helpers::{GateDependencies, WireName},
+    *,
+};
 
 const NO_CASES: usize = 6;
 pub const TEST_CASES: [(usize, usize); NO_CASES] = {
@@ -26,46 +29,41 @@ impl LogicTester {
         Self { logic }
     }
 
-    pub fn test_and_show_wires(&mut self) {
-        let output_array = self.logic.eval_output();
-        for ((input1, input2), output) in TEST_CASES.iter().zip(output_array.iter()) {
-            let expected = *input1 + *input2;
-            // let output = output;
-            let misses = output ^ expected;
-            if misses != 0 {
-                println!(
-                    "Test failed: input1 = {:0width$b}, input2 = {:0width$b}, expected = {:0width$b}, output = {:0width$b}, misses = {:0width$b}",
-                    input1,
-                    input2,
-                    expected,
-                    output,
-                    misses,
-                    width = INPUT_BITS
-                );
-                for i in 0..INPUT_BITS {
-                    if (misses & (1 << i)) != 0 {
-                        print!("z{:02}, ", i);
-                    }
-                }
-                println!();
-                println!();
+    pub fn identify_swaps(&mut self) {
+        let test_outputs_by_case = self.logic.eval_output();
+        let z_wire_any_miss = test_outputs_by_case
+            .iter()
+            .fold(0, |acc, &x| acc | x.z_wire_misses);
+
+        // any gate which is a dependency for a good z wire should be marked as good
+        let mut good_gates = GateDependencies::default();
+        for i in 0..OUTPUT_BITS {
+            if z_wire_any_miss & (1 << i) == 0 {
+                // This bit is not set in z_wire_any_miss, so we can find the gates that are dependencies for this bit and mark them as good.
+                let gate_dependencies = self.logic.engine[Z_OFFSET + i]
+                    .wire_analytics
+                    .gate_dependencies;
+                good_gates |= gate_dependencies;
             }
         }
-    }
-    pub fn test_only(&mut self) {
-        for ((input1, input2), output) in TEST_CASES.iter().zip(self.logic.eval_output().iter()) {
-            let expected = *input1 + *input2;
-            let misses = output ^ expected;
-        }
-    }
-    pub fn test(&mut self) -> usize {
-        let mut all_misses = 0;
-        for ((input1, input2), output) in TEST_CASES.iter().zip(self.logic.eval_output().iter()) {
-            let expected = *input1 + *input2;
-            let misses = output ^ expected;
-            all_misses |= misses;
-        }
-        all_misses
+
+        println!("Good gates: ");
+        self.logic
+            .engine
+            .iter()
+            .take_while(|x| x.wire_name < WireName::default())
+            .filter(|x| good_gates.get(x.wire_index))
+            .for_each(|x| print!(" {:#?}", x.wire_name.as_string()));
+        println!();
+
+        println!("Possibly bad gates: ");
+        self.logic
+            .engine
+            .iter()
+            .take_while(|x| x.wire_name < WireName::default())
+            .filter(|x| !good_gates.get(x.wire_index))
+            .for_each(|x| print!(" {:#?}", x.wire_name.as_string()));
+        println!();
     }
 }
 
@@ -77,36 +75,9 @@ mod tests {
     use stephen_morris_utils::timer::time;
 
     #[test]
-    fn test_logic() {
-        let mut tester = time(|| LogicTester::new(INPUT), "test_logic::LogicTester");
-        tester.print_duration();
-
-        let result = time(
-            || tester.test_and_show_wires(),
-            "test_logic::test_and_show_wires",
-        );
-        result.print_duration();
-    }
-    #[test]
-    fn test_only() {
-        fn test(logic: &mut Logic<NO_CASES>, cases: &[(usize, usize)]) -> usize {
-            let mut all_misses = 0;
-            for ((input1, input2), output) in cases.iter().zip(logic.eval_output().iter()) {
-                let expected = *input1 + *input2;
-                let misses = output ^ expected;
-                all_misses |= misses;
-            }
-            all_misses
-        }
-        let mut logic = time(
-            || Logic::new_with_cases(INPUT, TEST_CASES),
-            "test_only::Logic",
-        );
-        logic.print_duration();
-        let cases = time(
-            || test(&mut logic, &TEST_CASES),
-            &format!("{} cases", NO_CASES),
-        );
-        cases.print_all();
+    fn test_logic_tester() {
+        let input = INPUT;
+        let mut logic_tester = LogicTester::new(input);
+        logic_tester.identify_swaps();
     }
 }

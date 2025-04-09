@@ -1,5 +1,7 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct BitArray(pub u64);
+use std::default;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub struct BitArray(pub u8);
 
 impl BitArray {
     pub fn new() -> Self {
