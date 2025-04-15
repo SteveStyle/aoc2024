@@ -5,17 +5,32 @@ use crate::logic::{
     *,
 };
 
-const NO_CASES: usize = 6;
+const NO_CASES: usize = 1 + INPUT_BITS * 2;
 pub const TEST_CASES: [(usize, usize); NO_CASES] = {
     const ALL_ONES: usize = (2 << INPUT_BITS) - 1;
-    [
-        (0, 0),
-        (0, 1),
-        (1, 1),
-        (ALL_ONES, 0),
-        (1, ALL_ONES),
-        (ALL_ONES, ALL_ONES),
-    ]
+    let mut test_cases = [(0, 0); 1 + INPUT_BITS * 2];
+    let mut case_idx = 0;
+    test_cases[case_idx] = (0, 0);
+    case_idx += 1;
+    let mut i = 0;
+    while i < INPUT_BITS {
+        test_cases[case_idx] = (0, 1 << i);
+        case_idx += 1;
+        test_cases[case_idx] = (1 << i, 3 << i);
+        case_idx += 1;
+        i += 1;
+    }
+
+    test_cases
+
+    // [
+    //     (0, 0),
+    //     (0, 1),
+    //     (1, 1),
+    //     (ALL_ONES, 0),
+    //     (1, ALL_ONES),
+    //     (ALL_ONES, ALL_ONES),
+    // ]
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -31,6 +46,13 @@ impl LogicTester {
 
     pub fn identify_swaps(&mut self) {
         let test_outputs_by_case = self.logic.eval_output();
+
+        // print the test outputs.  x, y, actual and expected should be printed as integers.  z wire misses should be printed as binary.
+        for i in 0..NO_CASES {
+            let test_output = test_outputs_by_case[i];
+            println!("Test case {:2}: {:?}", i, test_output);
+        }
+
         let z_wire_any_miss = test_outputs_by_case
             .iter()
             .fold(0, |acc, &x| acc | x.z_wire_misses);
@@ -44,6 +66,25 @@ impl LogicTester {
                     .wire_analytics
                     .gate_dependencies;
                 good_gates |= gate_dependencies;
+            }
+        }
+
+        for i in 0..OUTPUT_BITS {
+            // if z wire is good then print the gate dependencies
+            if z_wire_any_miss & (1 << i) == 0 {
+                let gate_dependencies = self.logic.engine[Z_OFFSET + i]
+                    .wire_analytics
+                    .gate_dependencies;
+                let good_gate_list: Vec<String> = gate_dependencies
+                    .0
+                    .iter()
+                    .map(|x| format!("{:#?}", x))
+                    .collect();
+                println!(
+                    "Good gate dependencies for z{}: {}",
+                    i,
+                    good_gate_list.join(", ")
+                );
             }
         }
 

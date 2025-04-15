@@ -306,13 +306,23 @@ impl<const NO_CASES: usize> Logic<NO_CASES> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct TestCaseOutput {
-    x: usize,
-    y: usize,
+    pub x: usize,
+    pub y: usize,
     pub actual: usize,
     pub expected: usize,
     pub z_wire_misses: usize,
+}
+
+impl Debug for TestCaseOutput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "x: {:14}, y: {:14}, actual: {:15}, expected: {:15}, z_wire_misses: {:047b}",
+            self.x, self.y, self.actual, self.expected, self.z_wire_misses
+        )
+    }
 }
 
 #[cfg(test)]
