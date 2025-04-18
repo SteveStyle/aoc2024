@@ -10,10 +10,10 @@ pub fn parse_input(input: &str) -> Disk {
 
     loop {
         let file_size = (bytes.next().unwrap() - b'0') as usize;
-        ret.extend(std::iter::repeat(Some(id)).take(file_size));
+        ret.extend(std::iter::repeat_n(Some(id), file_size));
         if let Some(free_space) = bytes.next() {
             let free_space = (free_space - b'0') as usize;
-            ret.extend(std::iter::repeat(None).take(free_space));
+            ret.extend(std::iter::repeat_n(None, free_space));
             id += 1;
         } else {
             break;

@@ -1,6 +1,6 @@
 #![allow(dead_code, unused)]
 
-use logic::Logic;
+use machine::Machine;
 use stephen_morris_utils::timer::time;
 const INPUT: &str = include_str!("input.txt");
 
@@ -65,11 +65,12 @@ tgd XOR rvg -> z12
 tnw OR pbm -> gnj";
 
 mod bit_array;
-mod logic;
-mod logic_tester;
+mod errors;
+mod machine;
+mod machine_fixer;
 
 fn main() {
-    let mut lm = time(|| Logic::new(INPUT), "Logic");
+    let mut lm = time(|| Machine::new(INPUT), "Logic");
     let output = time(|| lm.eval_output(), "eval_all");
 
     lm.print_duration();

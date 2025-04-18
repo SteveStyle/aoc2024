@@ -130,8 +130,11 @@ fn disk2string(file_map: &FileMap) -> String {
         .nodes
         .iter()
         .fold(Vec::<u8>::new(), |mut acc: Vec<u8>, x| {
-            acc.extend(std::iter::repeat(x.id as u8 + b'0').take(x.data.blocks as usize));
-            acc.extend(std::iter::repeat(b'.').take(x.data.free_blocks as usize));
+            acc.extend(std::iter::repeat_n(
+                x.id as u8 + b'0',
+                x.data.blocks as usize,
+            ));
+            acc.extend(std::iter::repeat_n(b'.', x.data.free_blocks as usize));
             acc
         });
     println!("disk2string ret is:{:?}", ret);

@@ -1,11 +1,12 @@
 use crate::bit_array::BitArray;
+use crate::errors::MachineError;
 
 #[allow(dead_code)]
 use super::Operation;
 
 use std::fmt::Debug;
 
-use std::ops::{BitOrAssign, Deref, Not};
+use std::ops::{BitAndAssign, BitOrAssign, Deref, Not};
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, PartialOrd, Ord)]
 pub struct WireName(pub [u8; 3]);
@@ -58,7 +59,7 @@ impl WireName {
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
 pub enum WireValue<T, const NO_CASES: usize> {
     Value(BitArray),
-    Connection {
+    Gate {
         input1: T,
         input2: T,
         operation: Operation,
@@ -73,36 +74,118 @@ impl<T, const NO_CASES: usize> Default for WireValue<T, NO_CASES> {
 
 #[derive(Clone, PartialEq, Eq, Debug, Default, Copy, PartialOrd, Ord)]
 pub(crate) struct WireAnalytics {
-    pub(crate) gate_dependencies: GateDependencies,
+    pub(crate) wire_type: WireType,
+    pub(crate) gate_array: GateArray,
+    pub(crate) x_bits_used: BitArray,
+    pub(crate) y_bits_used: BitArray,
+    pub(crate) generation: u8,
+    pub(crate) highest_bit: u8,
+}
+
+#[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord, Default)]
+pub enum WireType {
+    X,
+    Y,
+    #[default]
+    GateOutput,
+    Z,
 }
 
 impl WireAnalytics {
     pub fn merge(&self, other: &Self) -> Self {
         Self {
-            gate_dependencies: self.gate_dependencies.merge(&other.gate_dependencies),
+            wire_type: WireType::GateOutput,
+            gate_array: self.gate_array.merge(&other.gate_array),
+            x_bits_used: self.x_bits_used | other.x_bits_used,
+            y_bits_used: self.y_bits_used | other.y_bits_used,
+            generation: self.generation.max(other.generation) + 1,
+            highest_bit: self.highest_bit.max(other.highest_bit),
         }
+    }
+    pub fn new_input_wire(wire_type: WireType, bit: usize) -> Self {
+        let mut x_bits_used = BitArray::new();
+        let mut y_bits_used = BitArray::new();
+        match wire_type {
+            WireType::X => x_bits_used.set(bit),
+            WireType::Y => y_bits_used.set(bit),
+            _ => {}
+        }
+        Self {
+            wire_type,
+            gate_array: GateArray::default(),
+            x_bits_used,
+            y_bits_used,
+            generation: 0,
+            highest_bit: bit as u8,
+        }
+    }
+    pub fn new_gate_wire(wire_name: WireName) -> Self {
+        let wire_type = match wire_name[0] {
+            b'x' | b'y' => unreachable!(),
+            b'z' => WireType::Z,
+            _ => WireType::GateOutput,
+        };
+
+        Self {
+            wire_type,
+            gate_array: GateArray::default(),
+            x_bits_used: BitArray::new(),
+            y_bits_used: BitArray::new(),
+            generation: 0,
+            highest_bit: 0,
+        }
+    }
+    pub fn validate(&self) -> Result<(), MachineError> {
+        match self.wire_type {
+            WireType::X => {
+                if (1 << self.highest_bit) & self.x_bits_used.0 == 0 {
+                    return Err(MachineError::LogicError(format!(
+                        "highest_bit is not set in x_bits_used: highest bit {:?} != x_bits_used {:?}",
+                        self.highest_bit, self.x_bits_used
+                    )));
+                }
+            }
+            WireType::Y => {
+                if (1 << self.highest_bit) & self.y_bits_used.0 == 0 {
+                    return Err(MachineError::LogicError(format!(
+                        "highest_bit is not set in y_bits_used: highest bit {:?} != y_bits_used {:?}",
+                        self.highest_bit, self.y_bits_used
+                    )));
+                }
+            }
+            _ => {
+                if self.x_bits_used != self.y_bits_used {
+                    return Err(MachineError::LogicError(format!(
+                        "x_bits_used and y_bits_used are not equal: {:?} != {:?}",
+                        self.x_bits_used, self.y_bits_used
+                    )));
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
 // a set of bits indicating whether gate n is included in a set
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct GateDependencies(pub [u128; 2]);
+pub struct GateArray(pub [u128; 2]);
 
-impl Not for GateDependencies {
+impl Not for GateArray {
     type Output = Self;
     fn not(self) -> Self::Output {
         Self([!self.0[0], !self.0[1]])
     }
 }
 
-impl BitOrAssign for GateDependencies {
+impl BitOrAssign for GateArray {
     fn bitor_assign(&mut self, rhs: Self) {
         self.0[0] |= rhs.0[0];
         self.0[1] |= rhs.0[1];
     }
 }
 
-impl GateDependencies {
+impl GateArray {
     pub fn set(&mut self, n: usize) {
         if n < 128 {
             self.0[1] |= 1 << n;
@@ -124,8 +207,8 @@ impl GateDependencies {
             self.0[0] & (1 << (n % 128)) != 0
         }
     }
-    pub fn merge(&self, other: &Self) -> GateDependencies {
-        GateDependencies([self.0[0] | other.0[0], self.0[1] | other.0[1]])
+    pub fn merge(&self, other: &Self) -> GateArray {
+        GateArray([self.0[0] | other.0[0], self.0[1] | other.0[1]])
     }
     pub fn as_binary_string(&self) -> String {
         format!("{:0128b}{:0128b}", self.0[0], self.0[1])
@@ -138,12 +221,12 @@ impl GateDependencies {
 #[cfg(test)]
 mod tests {
     //test GateFlags
-    use super::{GateDependencies, WireName};
+    use super::{GateArray, WireName};
 
-    fn flags_from_ints(a: u128, b: u128) -> GateDependencies {
-        GateDependencies([a, b])
+    fn flags_from_ints(a: u128, b: u128) -> GateArray {
+        GateArray([a, b])
     }
-    fn ints_from_flags(flags: GateDependencies) -> (u128, u128) {
+    fn ints_from_flags(flags: GateArray) -> (u128, u128) {
         (flags.0[0], flags.0[1])
     }
 
@@ -161,7 +244,7 @@ mod tests {
         let (a, b) = ints_from_flags(flags);
         assert_eq!([a, b], [123, 456]);
 
-        let mut flags = GateDependencies::default();
+        let mut flags = GateArray::default();
         assert_eq!(ints_from_flags(flags), (0, 0));
         flags.set(0);
         assert!(flags.get(0));
