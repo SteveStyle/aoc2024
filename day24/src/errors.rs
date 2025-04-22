@@ -16,3 +16,5 @@ impl Display for MachineError {
 }
 
 impl Error for MachineError {}
+
+pub type Result<T> = std::result::Result<T, MachineError>;

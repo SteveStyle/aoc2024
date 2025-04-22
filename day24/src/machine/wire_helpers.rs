@@ -35,8 +35,7 @@ impl WireName {
     pub(crate) fn from_slice(slice: &[u8]) -> Self {
         Self([slice[0], slice[1], slice[2]])
     }
-    pub fn from_char_bit(start_char: u8, bit: usize) -> Self {
-        let bit = bit as u8;
+    pub fn from_char_bit(start_char: u8, bit: u8) -> Self {
         let mut name = [0; 3];
         name[0] = start_char;
         name[1] = bit / 10 + b'0';
@@ -46,11 +45,9 @@ impl WireName {
     pub fn as_string(&self) -> String {
         self.0.iter().map(|b| *b as char).collect()
     }
-    pub fn bit_index(&self) -> Option<usize> {
+    pub fn bit_index(&self) -> Option<u8> {
         match self[0] {
-            b'x' | b'y' | b'z' => {
-                Some((self.0[1] - b'0') as usize * 10 + (self.0[2] - b'0') as usize)
-            }
+            b'x' | b'y' | b'z' => Some((self.0[1] - b'0') * 10 + (self.0[2] - b'0')),
             _ => None,
         }
     }
@@ -58,7 +55,7 @@ impl WireName {
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
 pub enum WireValue<T, const NO_CASES: usize> {
-    Value(BitArray),
+    Value(BitArray<u128>),
     Gate {
         input1: T,
         input2: T,
@@ -76,10 +73,11 @@ impl<T, const NO_CASES: usize> Default for WireValue<T, NO_CASES> {
 pub(crate) struct WireAnalytics {
     pub(crate) wire_type: WireType,
     pub(crate) gate_array: GateArray,
-    pub(crate) x_bits_used: BitArray,
-    pub(crate) y_bits_used: BitArray,
+    pub(crate) x_bits_used: BitArray<u64>,
+    pub(crate) y_bits_used: BitArray<u64>,
     pub(crate) generation: u8,
-    pub(crate) highest_bit: u8,
+    pub(crate) highest_input_bit: u8,
+    pub(crate) highest_output_bit: u8,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord, Default)]
@@ -99,7 +97,8 @@ impl WireAnalytics {
             x_bits_used: self.x_bits_used | other.x_bits_used,
             y_bits_used: self.y_bits_used | other.y_bits_used,
             generation: self.generation.max(other.generation) + 1,
-            highest_bit: self.highest_bit.max(other.highest_bit),
+            highest_input_bit: self.highest_input_bit.max(other.highest_input_bit),
+            highest_output_bit: 0,
         }
     }
     pub fn new_input_wire(wire_type: WireType, bit: usize) -> Self {
@@ -116,7 +115,8 @@ impl WireAnalytics {
             x_bits_used,
             y_bits_used,
             generation: 0,
-            highest_bit: bit as u8,
+            highest_input_bit: bit as u8,
+            highest_output_bit: 0,
         }
     }
     pub fn new_gate_wire(wire_name: WireName) -> Self {
@@ -132,24 +132,25 @@ impl WireAnalytics {
             x_bits_used: BitArray::new(),
             y_bits_used: BitArray::new(),
             generation: 0,
-            highest_bit: 0,
+            highest_input_bit: 0,
+            highest_output_bit: 0,
         }
     }
     pub fn validate(&self) -> Result<(), MachineError> {
         match self.wire_type {
             WireType::X => {
-                if (1 << self.highest_bit) & self.x_bits_used.0 == 0 {
+                if (1 << self.highest_input_bit) & self.x_bits_used.0 == 0 {
                     return Err(MachineError::LogicError(format!(
                         "highest_bit is not set in x_bits_used: highest bit {:?} != x_bits_used {:?}",
-                        self.highest_bit, self.x_bits_used
+                        self.highest_input_bit, self.x_bits_used
                     )));
                 }
             }
             WireType::Y => {
-                if (1 << self.highest_bit) & self.y_bits_used.0 == 0 {
+                if (1 << self.highest_input_bit) & self.y_bits_used.0 == 0 {
                     return Err(MachineError::LogicError(format!(
                         "highest_bit is not set in y_bits_used: highest bit {:?} != y_bits_used {:?}",
-                        self.highest_bit, self.y_bits_used
+                        self.highest_input_bit, self.y_bits_used
                     )));
                 }
             }

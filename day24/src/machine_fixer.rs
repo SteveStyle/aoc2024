@@ -114,6 +114,12 @@ impl MachineFixer {
             .filter(|x| !good_gates.get(x.wire_index))
             .for_each(|x| print!(" {:#?}", x.wire_name.as_string()));
         println!();
+
+        for wire_idx in 0..NO_WIRES {
+            if let Err(e) = self.machine.validate_wire(wire_idx) {
+                println!("error on wire {}, {}", wire_idx, e);
+            }
+        }
     }
 }
 

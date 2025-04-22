@@ -1,20 +1,28 @@
-use std::default;
+use std::{
+    default,
+    ops::{
+        Add, AddAssign, BitAnd, BitAndAssign, BitOrAssign, BitXorAssign, Not, Shl, ShlAssign, Shr,
+        ShrAssign, Sub, SubAssign,
+    },
+};
+
+use num_traits::PrimInt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub struct BitArray(pub u128);
+pub struct BitArray<T: PrimInt + BitOrAssign>(pub T);
 
-impl BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> BitArray<T> {
     pub fn new() -> Self {
-        Self(0)
+        Self(T::zero())
     }
     pub fn set(&mut self, index: usize) {
-        self.0 |= 1 << index;
+        self.0 |= T::one() << index;
     }
     pub fn unset(&mut self, index: usize) {
-        self.0 &= !(1 << index);
+        self.0 &= !(T::one() << index);
     }
     pub fn get(&self, index: usize) -> bool {
-        (self.0 & (1 << index)) != 0
+        (self.0 & (T::one() << index)) != T::zero()
     }
     pub fn set_value(&mut self, index: usize, value: bool) {
         if value {
@@ -25,91 +33,91 @@ impl BitArray {
     }
 }
 
-impl std::ops::BitAndAssign for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitAndAssign for BitArray<T> {
     fn bitand_assign(&mut self, rhs: Self) {
         self.0 &= rhs.0;
     }
 }
-impl std::ops::BitOrAssign for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitOrAssign for BitArray<T> {
     fn bitor_assign(&mut self, rhs: Self) {
         self.0 |= rhs.0;
     }
 }
-impl std::ops::BitXorAssign for BitArray {
+impl<T: PrimInt + BitXorAssign + BitOrAssign> std::ops::BitXorAssign for BitArray<T> {
     fn bitxor_assign(&mut self, rhs: Self) {
         self.0 ^= rhs.0;
     }
 }
-impl std::ops::ShlAssign<usize> for BitArray {
+impl<T: PrimInt + ShlAssign<usize> + BitOrAssign> ShlAssign<usize> for BitArray<T> {
     fn shl_assign(&mut self, rhs: usize) {
         self.0 <<= rhs;
     }
 }
-impl std::ops::ShrAssign<usize> for BitArray {
+impl<T: PrimInt + BitOrAssign + ShrAssign<usize>> ShrAssign<usize> for BitArray<T> {
     fn shr_assign(&mut self, rhs: usize) {
         self.0 >>= rhs;
     }
 }
-impl std::ops::AddAssign for BitArray {
+impl<T: PrimInt + BitOrAssign + AddAssign> AddAssign for BitArray<T> {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
     }
 }
-impl std::ops::SubAssign for BitArray {
+impl<T: PrimInt + BitOrAssign + SubAssign> SubAssign for BitArray<T> {
     fn sub_assign(&mut self, rhs: Self) {
         self.0 -= rhs.0;
     }
 }
-impl std::ops::BitAnd for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> BitAnd for BitArray<T> {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
         Self(self.0 & rhs.0)
     }
 }
-impl std::ops::BitOr for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitOr for BitArray<T> {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
         Self(self.0 | rhs.0)
     }
 }
-impl std::ops::BitXor for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitXor for BitArray<T> {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         Self(self.0 ^ rhs.0)
     }
 }
-impl std::ops::Not for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Not for BitArray<T> {
     type Output = Self;
 
     fn not(self) -> Self::Output {
         Self(!self.0)
     }
 }
-impl std::ops::Shl<usize> for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Shl<usize> for BitArray<T> {
     type Output = Self;
 
     fn shl(self, rhs: usize) -> Self::Output {
         Self(self.0 << rhs)
     }
 }
-impl std::ops::Shr<usize> for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Shr<usize> for BitArray<T> {
     type Output = Self;
 
     fn shr(self, rhs: usize) -> Self::Output {
         Self(self.0 >> rhs)
     }
 }
-impl std::ops::Add for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Add for BitArray<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
         Self(self.0 + rhs.0)
     }
 }
-impl std::ops::Sub for BitArray {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Sub for BitArray<T> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
