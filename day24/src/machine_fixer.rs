@@ -1,8 +1,10 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-use crate::machine::{
-    wire_helpers::{GateArray, WireName},
-    *,
+
+use crate::{
+    bit_array::LargeBitArray,
+    machine::{INPUT_BITS, InputPair, Machine, NO_WIRES, OUTPUT_BITS, Z_OFFSET},
+    wire::WireName,
 };
 
 const NO_CASES: usize = 1 + INPUT_BITS * 2;
@@ -71,7 +73,7 @@ impl MachineFixer {
             .fold(0, |acc, &x| acc | x.z_wire_misses);
 
         // any gate which is a dependency for a good z wire should be marked as good
-        let mut good_gates = GateArray::default();
+        let mut good_gates = LargeBitArray::default();
         for i in 0..OUTPUT_BITS {
             if z_wire_any_miss & (1 << i) == 0 {
                 // This bit is not set in z_wire_any_miss, so we can find the gates that are dependencies for this bit and mark them as good.

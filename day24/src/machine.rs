@@ -1,9 +1,12 @@
 #![allow(dead_code)]
 use std::fmt::Debug;
 
-use wire_helpers::{GateArray, WireAnalytics, WireName, WireType, WireValue};
-
-use crate::{bit_array::BitArray, errors::MachineError, errors::Result};
+use crate::{
+    bit_array::BitArray,
+    errors::{MachineError, Result},
+    wire::{self, WireName, WireValue},
+    wire_analytics::{InputWireType, WireAnalytics, WireType},
+};
 
 pub const INPUT_BITS: usize = 45;
 pub const OUTPUT_BITS: usize = INPUT_BITS + 1;
@@ -12,53 +15,12 @@ pub const X_OFFSET: usize = NO_GATES;
 pub const Y_OFFSET: usize = NO_GATES + INPUT_BITS;
 pub const Z_OFFSET: usize = NO_GATES + INPUT_BITS * 2;
 pub const NO_WIRES: usize = NO_GATES + INPUT_BITS * 2 + OUTPUT_BITS;
-pub mod wire_helpers;
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
 pub enum Operation {
     And,
     Or,
     Xor,
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct Wire<const N: usize> {
-    pub wire_name: WireName,
-    pub wire_index: usize,
-    value_start: WireValue<usize, N>,
-    value_calc: WireValue<usize, N>,
-    pub wire_analytics: WireAnalytics,
-}
-
-impl<const N: usize> PartialOrd for Wire<N> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        debug_assert!(!(self.depends_on(other) && other.depends_on(self)));
-        if self.depends_on(other) {
-            Some(std::cmp::Ordering::Greater)
-        } else if other.depends_on(self) {
-            Some(std::cmp::Ordering::Less)
-        } else {
-            None
-        }
-    }
-}
-
-impl<const N: usize> Wire<N> {
-    pub fn depends_on(&self, other: &Self) -> bool {
-        self.wire_analytics.gate_array.get(other.wire_index)
-    }
-
-    pub fn validate(&self) -> Result<()> {
-        self.wire_analytics.validate()?;
-        if self.wire_analytics.gate_array.get(self.wire_index) {
-            return Err(MachineError::LogicError(format!(
-                "Wire {} depends on itself",
-                self.wire_name.as_string()
-            )));
-        }
-
-        Ok(())
-    }
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -71,7 +33,7 @@ pub struct Machine<const NO_CASES: usize> {
     cases: [InputPair; NO_CASES],
     gates: [WireNameValue<NO_CASES>; NO_GATES],
     highest_z_bit: u8,
-    pub wires: [Wire<NO_CASES>; NO_WIRES],
+    pub wires: [wire::Wire<NO_CASES>; NO_WIRES],
 }
 
 impl Machine<1> {
@@ -107,7 +69,7 @@ impl Machine<1> {
         for bit_index in 0..=logic.highest_z_bit {
             let wire_name = WireName::from_char_bit(b'z', bit_index);
             let wire_idx = Self::get_gate_index(&logic.gates, wire_name);
-            let (z_nth_bit, _) = logic.eval(wire_idx);
+            let (z_nth_bit, _) = logic.eval(wire_idx, bit_index);
             if z_nth_bit.get(bit_index as usize) {
                 z.set(bit_index as usize);
             }
@@ -161,7 +123,7 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
         }
         gates.sort();
 
-        let mut wires = [Wire::default(); NO_WIRES];
+        let mut wires = [wire::Wire::default(); NO_WIRES];
         for &WireNameValue {
             wire_name,
             wire_value,
@@ -180,7 +142,7 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
                     operation,
                 },
             };
-            wires[wire_index] = Wire {
+            wires[wire_index] = wire::Wire {
                 wire_name,
                 wire_index,
                 value_start,
@@ -196,12 +158,15 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
             for (case_idx, case) in cases.iter().enumerate() {
                 bit_values_by_cases.set_value(case_idx, (case.x & (1 << bit)) != 0);
             }
-            wires[X_OFFSET + bit] = Wire {
+            wires[X_OFFSET + bit] = wire::Wire {
                 wire_name,
                 wire_index: X_OFFSET + bit,
                 value_start: WireValue::Value(bit_values_by_cases),
                 value_calc: WireValue::Value(bit_values_by_cases),
-                wire_analytics: WireAnalytics::new_input_wire(WireType::X, bit),
+                wire_analytics: WireAnalytics::new_input_wire(
+                    WireType::Input(InputWireType::X),
+                    bit,
+                ),
             };
             let wire_name = WireName::from_char_bit(b'y', bit as u8);
             let mut bit_by_cases_array = BitArray::new();
@@ -210,18 +175,21 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
             for (case_idx, case) in cases.iter().enumerate() {
                 bit_by_cases_array.set_value(case_idx, (case.y & (1 << bit)) != 0);
             }
-            wires[Y_OFFSET + bit] = Wire {
+            wires[Y_OFFSET + bit] = wire::Wire {
                 wire_name,
                 wire_index: Y_OFFSET + bit,
                 value_start: WireValue::Value(bit_by_cases_array),
                 value_calc: WireValue::Value(bit_by_cases_array),
-                wire_analytics: WireAnalytics::new_input_wire(WireType::Y, bit),
+                wire_analytics: WireAnalytics::new_input_wire(
+                    WireType::Input(InputWireType::Y),
+                    bit,
+                ),
             };
         }
 
         for bit in highest_z_bit as usize + 1..OUTPUT_BITS {
             let wire_name = WireName::from_char_bit(b'z', bit as u8);
-            wires[Self::get_gate_index(&gates, wire_name)] = Wire {
+            wires[Self::get_gate_index(&gates, wire_name)] = wire::Wire {
                 wire_name,
                 ..Default::default()
             };
@@ -271,16 +239,21 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
         gates_list
     }
 
-    fn eval(&mut self, wire_idx: usize) -> (BitArray<u128>, WireAnalytics) {
+    fn eval(&mut self, wire_idx: usize, z_bit: u8) -> (BitArray<u128>, WireAnalytics) {
         let (new_value, new_analytics) = match self.wires[wire_idx].value_calc {
-            WireValue::Value(b) => (b, self.wires[wire_idx].wire_analytics),
+            WireValue::Value(b) => {
+                if let WireType::Input(_) = self.wires[wire_idx].wire_analytics.wire_type {
+                    self.wires[wire_idx].wire_analytics.lowest_output_bit = z_bit
+                }
+                (b, self.wires[wire_idx].wire_analytics)
+            }
             WireValue::Gate {
                 input1: input1_idx,
                 input2: input2_idx,
                 operation,
             } => {
-                let (input1, wa1) = self.eval(input1_idx);
-                let (input2, wa2) = self.eval(input2_idx);
+                let (input1, wa1) = self.eval(input1_idx, z_bit);
+                let (input2, wa2) = self.eval(input2_idx, z_bit);
 
                 let output = match operation {
                     Operation::And => input1 & input2,
@@ -298,12 +271,6 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
 
         self.wires[wire_idx].wire_analytics = new_analytics;
 
-        if self.wires[wire_idx].wire_analytics.wire_type == WireType::Z {
-            self.set_highest_output_bit(
-                wire_idx,
-                self.wires[wire_idx].wire_name.bit_index().unwrap(),
-            );
-        }
         (new_value, new_analytics)
     }
 
@@ -311,14 +278,14 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
         let wire = &self.wires[wire_idx];
         wire.validate()?;
         match wire.wire_analytics.wire_type {
-            WireType::X | WireType::Y => {}
+            WireType::Input(_) => {}
             WireType::GateOutput | WireType::Z => {
-                if wire.wire_analytics.highest_input_bit > wire.wire_analytics.highest_output_bit {
+                if wire.wire_analytics.highest_input_bit > wire.wire_analytics.lowest_output_bit {
                     return Err(MachineError::LogicError(format!(
                         "Wire {} has a higher input bit ({}) than output bit ({})",
                         wire.wire_name.as_string(),
                         wire.wire_analytics.highest_input_bit,
-                        wire.wire_analytics.highest_output_bit
+                        wire.wire_analytics.lowest_output_bit
                     )));
                 }
             }
@@ -328,8 +295,8 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
 
     fn set_highest_output_bit(&mut self, wire_idx: usize, bit: u8) {
         let this_wire = &mut self.wires[wire_idx];
-        if this_wire.wire_analytics.highest_output_bit < bit {
-            this_wire.wire_analytics.highest_output_bit = bit;
+        if this_wire.wire_analytics.lowest_output_bit < bit {
+            this_wire.wire_analytics.lowest_output_bit = bit;
         }
         match this_wire.value_start {
             WireValue::Value(_) => {}
@@ -346,7 +313,7 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
         for bit_index in 0..=self.highest_z_bit {
             let z_wire_name = WireName::from_char_bit(b'z', bit_index);
             let z_wire_idx = Self::get_gate_index(&self.gates, z_wire_name);
-            let (z_wire_value_by_case, _) = self.eval(z_wire_idx);
+            let (z_wire_value_by_case, _) = self.eval(z_wire_idx, z_wire_idx as u8);
             for (case, answer) in actual_by_case.iter_mut().enumerate() {
                 *answer |= (z_wire_value_by_case.get(case) as usize) << bit_index;
             }
@@ -455,7 +422,7 @@ mod tests {
         // print the wire name and the index if they do not match.
         for (
             idx,
-            Wire {
+            wire::Wire {
                 wire_name,
                 wire_index,
                 value_start,

@@ -124,3 +124,54 @@ impl<T: PrimInt + BitOrAssign + BitAndAssign> Sub for BitArray<T> {
         Self(self.0 - rhs.0)
     }
 }
+
+// a set of bits indicating whether gate n is included in a set
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct LargeBitArray(pub [u128; 2]);
+
+impl Not for LargeBitArray {
+    type Output = Self;
+    fn not(self) -> Self::Output {
+        Self([!self.0[0], !self.0[1]])
+    }
+}
+
+impl BitOrAssign for LargeBitArray {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0[0] |= rhs.0[0];
+        self.0[1] |= rhs.0[1];
+    }
+}
+
+impl LargeBitArray {
+    pub fn set(&mut self, n: usize) {
+        if n < 128 {
+            self.0[1] |= 1 << n;
+        } else if n < 256 {
+            self.0[0] |= 1 << (n % 128);
+        }
+    }
+    pub fn unset(&mut self, n: usize) {
+        if n < 128 {
+            self.0[1] &= !(1 << n);
+        } else {
+            self.0[0] &= !(1 << (n % 128));
+        }
+    }
+    pub fn get(&self, n: usize) -> bool {
+        if n < 128 {
+            self.0[1] & (1 << n) != 0
+        } else {
+            self.0[0] & (1 << (n % 128)) != 0
+        }
+    }
+    pub fn merge(&self, other: &Self) -> LargeBitArray {
+        LargeBitArray([self.0[0] | other.0[0], self.0[1] | other.0[1]])
+    }
+    pub fn as_binary_string(&self) -> String {
+        format!("{:0128b}{:0128b}", self.0[0], self.0[1])
+    }
+    pub(crate) fn is_empty(&self) -> bool {
+        self.0[0] == 0 && self.0[1] == 0
+    }
+}

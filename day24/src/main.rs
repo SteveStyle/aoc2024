@@ -68,6 +68,8 @@ mod bit_array;
 mod errors;
 mod machine;
 mod machine_fixer;
+mod wire;
+mod wire_analytics;
 
 fn main() {
     let mut lm = time(|| Machine::new(INPUT), "Logic");
