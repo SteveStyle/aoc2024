@@ -1,4 +1,4 @@
-use crate::bit_array::BitFlags;
+use stephen_morris_utils::bit_array::BitFlags;
 use stephen_morris_utils::grid::{Grid, Point};
 
 #[derive(Debug)]

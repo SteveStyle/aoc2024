@@ -42,7 +42,6 @@ const TESTINPUT: &str = "#####
 #.#.#
 #####";
 
-mod bit_array;
 mod locks;
 
 fn main() {
