@@ -82,11 +82,7 @@ impl Sequence {
         // Self { cost, moves }
     }
     fn min(self, other: Self) -> Self {
-        if self.cost <= other.cost {
-            self
-        } else {
-            other
-        }
+        if self.cost <= other.cost { self } else { other }
     }
 }
 
@@ -237,21 +233,19 @@ impl Keypad {
     }
 
     fn vertical_key(&mut self, v: Vector) -> Point {
-        let vertical_key = *self
+        *self
             .layout
             .map
             .get(&if v.y > 0 { b'v' } else { b'^' })
-            .unwrap();
-        vertical_key
+            .unwrap()
     }
 
     fn horizontal_key(&mut self, v: Vector) -> Point {
-        let horizontal_key = *self
+        *self
             .layout
             .map
             .get(&if v.x > 0 { b'>' } else { b'<' })
-            .unwrap();
-        horizontal_key
+            .unwrap()
     }
 
     fn enter_code(&mut self, code: &[u8]) -> Sequence {
