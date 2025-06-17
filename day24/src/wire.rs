@@ -42,7 +42,7 @@ impl<const N: usize> Wire<N> {
     }
 }
 
-use crate::bit_array::BitArray;
+use crate::bit_array::BitFlags;
 use crate::machine::Operation;
 use crate::wire_analytics::WireAnalytics;
 
@@ -97,7 +97,7 @@ impl WireName {
 
 #[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
 pub enum WireValue<T, const NO_CASES: usize> {
-    Value(BitArray<u128>),
+    Value(BitFlags<u128>),
     Gate {
         input1: T,
         input2: T,
@@ -107,6 +107,6 @@ pub enum WireValue<T, const NO_CASES: usize> {
 
 impl<T, const NO_CASES: usize> Default for WireValue<T, NO_CASES> {
     fn default() -> Self {
-        Self::Value(BitArray::new())
+        Self::Value(BitFlags::new())
     }
 }

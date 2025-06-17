@@ -2,7 +2,7 @@
 use std::fmt::Debug;
 
 use crate::{
-    bit_array::BitArray,
+    bit_array::BitFlags,
     errors::{MachineError, Result},
     wire::{self, WireName, WireValue},
     wire_analytics::{InputWireType, WireAnalytics, WireType},
@@ -65,7 +65,7 @@ impl Machine<1> {
     pub fn calc(input: &str, x: usize, y: usize) -> usize {
         let mut logic = Machine::new_with_cases(input, [InputPair { x, y }]);
         // eval the z gates, and collect as an integer using the bit value to detemine the binary columns
-        let mut z = BitArray::new();
+        let mut z = BitFlags::new();
         for bit_index in 0..=logic.highest_z_bit {
             let wire_name = WireName::from_char_bit(b'z', bit_index);
             let wire_idx = Self::get_gate_index(&logic.gates, wire_name);
@@ -153,7 +153,7 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
 
         for bit in 0..INPUT_BITS {
             let wire_name = WireName::from_char_bit(b'x', bit as u8);
-            let mut bit_values_by_cases = BitArray::new();
+            let mut bit_values_by_cases = BitFlags::new();
             // For this bit, we store the value for each case in a single bit array.
             for (case_idx, case) in cases.iter().enumerate() {
                 bit_values_by_cases.set_value(case_idx, (case.x & (1 << bit)) != 0);
@@ -169,7 +169,7 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
                 ),
             };
             let wire_name = WireName::from_char_bit(b'y', bit as u8);
-            let mut bit_by_cases_array = BitArray::new();
+            let mut bit_by_cases_array = BitFlags::new();
             // we want a u64 array of 0s and 1s for each bit up to INPUT_BITS.
             // the bit index in the u64 is the case number
             for (case_idx, case) in cases.iter().enumerate() {
@@ -239,7 +239,7 @@ impl<const NO_CASES: usize> Machine<NO_CASES> {
         gates_list
     }
 
-    fn eval(&mut self, wire_idx: usize, z_bit: u8) -> (BitArray<u128>, WireAnalytics) {
+    fn eval(&mut self, wire_idx: usize, z_bit: u8) -> (BitFlags<u128>, WireAnalytics) {
         let (new_value, new_analytics) = match self.wires[wire_idx].value_calc {
             WireValue::Value(b) => {
                 if let WireType::Input(_) = self.wires[wire_idx].wire_analytics.wire_type {

@@ -9,9 +9,9 @@ use std::{
 use num_traits::PrimInt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub struct BitArray<T: PrimInt + BitOrAssign>(pub T);
+pub struct BitFlags<T: PrimInt + BitOrAssign>(pub T);
 
-impl<T: PrimInt + BitOrAssign + BitAndAssign> BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> BitFlags<T> {
     pub fn new() -> Self {
         Self(T::zero())
     }
@@ -33,91 +33,91 @@ impl<T: PrimInt + BitOrAssign + BitAndAssign> BitArray<T> {
     }
 }
 
-impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitAndAssign for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitAndAssign for BitFlags<T> {
     fn bitand_assign(&mut self, rhs: Self) {
         self.0 &= rhs.0;
     }
 }
-impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitOrAssign for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitOrAssign for BitFlags<T> {
     fn bitor_assign(&mut self, rhs: Self) {
         self.0 |= rhs.0;
     }
 }
-impl<T: PrimInt + BitXorAssign + BitOrAssign> std::ops::BitXorAssign for BitArray<T> {
+impl<T: PrimInt + BitXorAssign + BitOrAssign> std::ops::BitXorAssign for BitFlags<T> {
     fn bitxor_assign(&mut self, rhs: Self) {
         self.0 ^= rhs.0;
     }
 }
-impl<T: PrimInt + ShlAssign<usize> + BitOrAssign> ShlAssign<usize> for BitArray<T> {
+impl<T: PrimInt + ShlAssign<usize> + BitOrAssign> ShlAssign<usize> for BitFlags<T> {
     fn shl_assign(&mut self, rhs: usize) {
         self.0 <<= rhs;
     }
 }
-impl<T: PrimInt + BitOrAssign + ShrAssign<usize>> ShrAssign<usize> for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + ShrAssign<usize>> ShrAssign<usize> for BitFlags<T> {
     fn shr_assign(&mut self, rhs: usize) {
         self.0 >>= rhs;
     }
 }
-impl<T: PrimInt + BitOrAssign + AddAssign> AddAssign for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + AddAssign> AddAssign for BitFlags<T> {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
     }
 }
-impl<T: PrimInt + BitOrAssign + SubAssign> SubAssign for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + SubAssign> SubAssign for BitFlags<T> {
     fn sub_assign(&mut self, rhs: Self) {
         self.0 -= rhs.0;
     }
 }
-impl<T: PrimInt + BitOrAssign + BitAndAssign> BitAnd for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> BitAnd for BitFlags<T> {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
         Self(self.0 & rhs.0)
     }
 }
-impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitOr for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitOr for BitFlags<T> {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
         Self(self.0 | rhs.0)
     }
 }
-impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitXor for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> std::ops::BitXor for BitFlags<T> {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         Self(self.0 ^ rhs.0)
     }
 }
-impl<T: PrimInt + BitOrAssign + BitAndAssign> Not for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Not for BitFlags<T> {
     type Output = Self;
 
     fn not(self) -> Self::Output {
         Self(!self.0)
     }
 }
-impl<T: PrimInt + BitOrAssign + BitAndAssign> Shl<usize> for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Shl<usize> for BitFlags<T> {
     type Output = Self;
 
     fn shl(self, rhs: usize) -> Self::Output {
         Self(self.0 << rhs)
     }
 }
-impl<T: PrimInt + BitOrAssign + BitAndAssign> Shr<usize> for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Shr<usize> for BitFlags<T> {
     type Output = Self;
 
     fn shr(self, rhs: usize) -> Self::Output {
         Self(self.0 >> rhs)
     }
 }
-impl<T: PrimInt + BitOrAssign + BitAndAssign> Add for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Add for BitFlags<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
         Self(self.0 + rhs.0)
     }
 }
-impl<T: PrimInt + BitOrAssign + BitAndAssign> Sub for BitArray<T> {
+impl<T: PrimInt + BitOrAssign + BitAndAssign> Sub for BitFlags<T> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -127,23 +127,23 @@ impl<T: PrimInt + BitOrAssign + BitAndAssign> Sub for BitArray<T> {
 
 // a set of bits indicating whether gate n is included in a set
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct LargeBitArray(pub [u128; 2]);
+pub struct LargeBitFlags(pub [u128; 2]);
 
-impl Not for LargeBitArray {
+impl Not for LargeBitFlags {
     type Output = Self;
     fn not(self) -> Self::Output {
         Self([!self.0[0], !self.0[1]])
     }
 }
 
-impl BitOrAssign for LargeBitArray {
+impl BitOrAssign for LargeBitFlags {
     fn bitor_assign(&mut self, rhs: Self) {
         self.0[0] |= rhs.0[0];
         self.0[1] |= rhs.0[1];
     }
 }
 
-impl LargeBitArray {
+impl LargeBitFlags {
     pub fn set(&mut self, n: usize) {
         if n < 128 {
             self.0[1] |= 1 << n;
@@ -165,8 +165,8 @@ impl LargeBitArray {
             self.0[0] & (1 << (n % 128)) != 0
         }
     }
-    pub fn merge(&self, other: &Self) -> LargeBitArray {
-        LargeBitArray([self.0[0] | other.0[0], self.0[1] | other.0[1]])
+    pub fn merge(&self, other: &Self) -> LargeBitFlags {
+        LargeBitFlags([self.0[0] | other.0[0], self.0[1] | other.0[1]])
     }
     pub fn as_binary_string(&self) -> String {
         format!("{:0128b}{:0128b}", self.0[0], self.0[1])

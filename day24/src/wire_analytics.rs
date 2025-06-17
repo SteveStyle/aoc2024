@@ -1,15 +1,15 @@
-use crate::{bit_array::LargeBitArray, errors::MachineError};
+use crate::{bit_array::LargeBitFlags, errors::MachineError};
 
 use super::wire::WireName;
 
-use crate::bit_array::BitArray;
+use crate::bit_array::BitFlags;
 
 #[derive(Clone, PartialEq, Eq, Debug, Default, Copy, PartialOrd, Ord)]
 pub(crate) struct WireAnalytics {
     pub(crate) wire_type: WireType,
-    pub(crate) gate_array: LargeBitArray,
-    pub(crate) x_bits_used: BitArray<u64>,
-    pub(crate) y_bits_used: BitArray<u64>,
+    pub(crate) gate_array: LargeBitFlags,
+    pub(crate) x_bits_used: BitFlags<u64>,
+    pub(crate) y_bits_used: BitFlags<u64>,
     pub(crate) generation: u8,
     pub(crate) highest_input_bit: u8,
     pub(crate) lowest_output_bit: u8,
@@ -42,8 +42,8 @@ impl WireAnalytics {
         }
     }
     pub fn new_input_wire(wire_type: WireType, bit: usize) -> Self {
-        let mut x_bits_used = BitArray::new();
-        let mut y_bits_used = BitArray::new();
+        let mut x_bits_used = BitFlags::new();
+        let mut y_bits_used = BitFlags::new();
         match wire_type {
             WireType::Input(InputWireType::X) => x_bits_used.set(bit),
             WireType::Input(InputWireType::Y) => y_bits_used.set(bit),
@@ -51,7 +51,7 @@ impl WireAnalytics {
         }
         Self {
             wire_type,
-            gate_array: LargeBitArray::default(),
+            gate_array: LargeBitFlags::default(),
             x_bits_used,
             y_bits_used,
             generation: 0,
@@ -68,9 +68,9 @@ impl WireAnalytics {
 
         Self {
             wire_type,
-            gate_array: LargeBitArray::default(),
-            x_bits_used: BitArray::new(),
-            y_bits_used: BitArray::new(),
+            gate_array: LargeBitFlags::default(),
+            x_bits_used: BitFlags::new(),
+            y_bits_used: BitFlags::new(),
             generation: 0,
             highest_input_bit: 0,
             lowest_output_bit: u8::MAX,
