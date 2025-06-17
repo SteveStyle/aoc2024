@@ -1,3 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["stephen_morris_utils","day*"]
+
+[profile.release]
+lto = true
+
